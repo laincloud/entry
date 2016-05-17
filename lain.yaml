@@ -1,0 +1,23 @@
+appname: entry
+
+build:
+    base: laincloud/centos-lain:20160503
+    prepare:
+        version: 200
+        script:
+            - mkdir -p $GOPATH/src/github.com/laincloud
+    script:
+        - ln -s /lain/app $GOPATH/src/github.com/laincloud/entry
+        - go build -o entry-server $GOPATH/src/github.com/laincloud/entry/main.go
+
+test:
+    script:
+        - go test github.com/laincloud/entry/server
+
+web:
+    cmd: ./entry-server 
+    memory: 256m
+    env:
+        - LAINLET_PORT=9001
+        - SWARM_PORT=2376
+    port: 80

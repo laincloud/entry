@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package message;
+
+message RequestMessage {
+    enum RequestType {
+        PLAIN = 0;
+        WINCH = 1;
+    }
+
+    RequestType msgType = 1;
+    bytes content = 2;
+}
+
+message ResponseMessage {
+    enum ResponseType {
+        STDOUT = 0;
+        STDERR = 1;
+        CLOSE = 2;
+    }
+
+    ResponseType msgType = 1;
+    bytes content = 2;
+}
