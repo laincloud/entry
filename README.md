@@ -41,5 +41,5 @@ Outbound rules:
     etcdctl set /lain/config/super_apps/entry {}
     ```
 
-## License
+## Licensing
 Entry is released under [MIT](https://github.com/laincloud/entry/blob/master/LICENSE) license.
