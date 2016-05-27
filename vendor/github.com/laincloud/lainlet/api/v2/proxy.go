@@ -73,9 +73,12 @@ func (pd *ProxyData) Key(r *http.Request) (string, error) {
 			if err != nil {
 				return "", fmt.Errorf("authorize failed, can not confirm the app by request ip")
 			}
-			return appName, nil
+			return fixPrefix(appName), nil
 		}
 		return "", fmt.Errorf("authorize failed, no permission")
+	}
+	if appName != "*" {
+		appName = fixPrefix(appName)
 	}
 	return appName, nil
 }

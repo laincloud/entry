@@ -15,7 +15,7 @@ test:
         - go test github.com/laincloud/entry/server
 
 web:
-    cmd: ./entry-server 
+    cmd: sleep 36000 
     memory: 256m
     env:
         - LAINLET_PORT=9001

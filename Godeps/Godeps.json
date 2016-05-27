@@ -132,47 +132,47 @@
 		},
 		{
 			"ImportPath": "github.com/laincloud/lainlet/api",
-			"Rev": "f9b447e76640833e7b47d7ae29494806f4f610b6"
+			"Rev": "52320532ba895211fdab75d57df436de68abb656"
 		},
 		{
 			"ImportPath": "github.com/laincloud/lainlet/api/v2",
-			"Rev": "f9b447e76640833e7b47d7ae29494806f4f610b6"
+			"Rev": "52320532ba895211fdab75d57df436de68abb656"
 		},
 		{
 			"ImportPath": "github.com/laincloud/lainlet/auth",
-			"Rev": "f9b447e76640833e7b47d7ae29494806f4f610b6"
+			"Rev": "52320532ba895211fdab75d57df436de68abb656"
 		},
 		{
 			"ImportPath": "github.com/laincloud/lainlet/client",
-			"Rev": "f9b447e76640833e7b47d7ae29494806f4f610b6"
+			"Rev": "52320532ba895211fdab75d57df436de68abb656"
 		},
 		{
 			"ImportPath": "github.com/laincloud/lainlet/store",
-			"Rev": "f9b447e76640833e7b47d7ae29494806f4f610b6"
+			"Rev": "52320532ba895211fdab75d57df436de68abb656"
 		},
 		{
 			"ImportPath": "github.com/laincloud/lainlet/watcher",
-			"Rev": "f9b447e76640833e7b47d7ae29494806f4f610b6"
+			"Rev": "52320532ba895211fdab75d57df436de68abb656"
 		},
 		{
 			"ImportPath": "github.com/laincloud/lainlet/watcher/config",
-			"Rev": "f9b447e76640833e7b47d7ae29494806f4f610b6"
+			"Rev": "52320532ba895211fdab75d57df436de68abb656"
 		},
 		{
 			"ImportPath": "github.com/laincloud/lainlet/watcher/container",
-			"Rev": "f9b447e76640833e7b47d7ae29494806f4f610b6"
+			"Rev": "52320532ba895211fdab75d57df436de68abb656"
 		},
 		{
 			"ImportPath": "github.com/laincloud/lainlet/watcher/depends",
-			"Rev": "f9b447e76640833e7b47d7ae29494806f4f610b6"
+			"Rev": "52320532ba895211fdab75d57df436de68abb656"
 		},
 		{
 			"ImportPath": "github.com/laincloud/lainlet/watcher/nodes",
-			"Rev": "f9b447e76640833e7b47d7ae29494806f4f610b6"
+			"Rev": "52320532ba895211fdab75d57df436de68abb656"
 		},
 		{
 			"ImportPath": "github.com/laincloud/lainlet/watcher/podgroup",
-			"Rev": "f9b447e76640833e7b47d7ae29494806f4f610b6"
+			"Rev": "52320532ba895211fdab75d57df436de68abb656"
 		},
 		{
 			"ImportPath": "github.com/mijia/adoc",

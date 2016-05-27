@@ -76,5 +76,8 @@ func (ci *CoreInfoForBackupctl) Key(r *http.Request) (string, error) {
 		return "", fmt.Errorf("authorize failed, super required")
 	}
 	appName := api.GetString(r, "appname", "*")
+	if appName != "*" {
+		appName = fixPrefix(appName)
+	}
 	return appName, nil
 }

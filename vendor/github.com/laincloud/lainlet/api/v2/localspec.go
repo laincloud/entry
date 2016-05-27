@@ -54,7 +54,7 @@ func (ls *LocalSpec) Key(r *http.Request) (string, error) {
 	if !auth.IsSuper(r.RemoteAddr) {
 		return "", fmt.Errorf("authorize failed, super required")
 	}
-	return api.GetString(r, "nodeip", ls.LocalIP), nil
+	return fixPrefix(api.GetString(r, "nodeip", ls.LocalIP)), nil
 }
 
 // to realize BanWatcher interface, abandon watch action
