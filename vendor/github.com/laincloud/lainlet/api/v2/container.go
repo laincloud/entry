@@ -46,5 +46,8 @@ func (gc *GeneralContainers) Key(r *http.Request) (string, error) {
 		return "", fmt.Errorf("authorize failed, super required")
 	}
 	target := api.GetString(r, "nodename", "*")
+	if target != "*" {
+		target = fixPrefix(target)
+	}
 	return target, nil
 }

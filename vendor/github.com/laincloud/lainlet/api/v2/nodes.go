@@ -47,5 +47,8 @@ func (gn *GeneralNodes) Key(r *http.Request) (string, error) {
 		return "", fmt.Errorf("authorize failed, super required")
 	}
 	target := api.GetString(r, "name", "*")
+	if target != "*" && target[len(target)-1] != ':' {
+		target = target + ":"
+	}
 	return target, nil
 }
