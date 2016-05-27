@@ -105,6 +105,7 @@ func (server EntryServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	procName := r.Header.Get("proc-name")
 	instanceNo := r.Header.Get("instance-no")
 
+	log.Infof("A user wants to enter %s[%s-%s]", appName, procName, instanceNo)
 	execCmd := []string{"env", fmt.Sprintf("TERM=%s", r.Header.Get("term-type")), "/bin/bash"}
 
 	var (
@@ -307,8 +308,8 @@ func (server *EntryServer) getContainerID(appName, procName, instanceNo string) 
 		return "", err
 	}
 	for procFullName, procInfo := range coreInfo {
-		keyParts := strings.Split(procFullName, ".")
-		if len(keyParts) > 0 && keyParts[len(keyParts)-1] == procName {
+		curAppName, curProcName := getAppProcName(strings.Split(procFullName, "."))
+		if curProcName == procName && curAppName == appName {
 			for _, containerInfo := range procInfo.PodInfos {
 				if strconv.Itoa(containerInfo.InstanceNo) == instanceNo &&
 					len(containerInfo.Containers) > 0 &&
@@ -365,4 +366,16 @@ func getValidUT8Length(data []byte) int {
 		}
 	}
 	return validLen
+}
+
+func getAppProcName(key []string) (string, string) {
+	var procName string
+	if len(key) > 0 {
+		procName = key[len(key)-1]
+	}
+	var tmp []string
+	for i := len(key) - 3; i >= 0; i-- {
+		tmp = append(tmp, key[i])
+	}
+	return strings.Join(tmp, "."), procName
 }
