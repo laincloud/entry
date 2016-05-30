@@ -95,47 +95,22 @@ func StartServer(port, endpoint string) {
 		}
 	}
 
-	http.Handle("/enter", *server)
+	http.HandleFunc("/enter", server.enter)
+	http.HandleFunc("/attach", server.attach)
 	log.Fatal(http.ListenAndServe(net.JoinHostPort("", port), nil))
 }
 
-func (server EntryServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	accessToken := r.Header.Get("access-token")
-	appName := r.Header.Get("app-name")
-	procName := r.Header.Get("proc-name")
-	instanceNo := r.Header.Get("instance-no")
-
-	log.Infof("A user wants to enter %s[%s-%s]", appName, procName, instanceNo)
-	execCmd := []string{"env", fmt.Sprintf("TERM=%s", r.Header.Get("term-type")), "/bin/bash"}
-
-	var (
-		err  error
-		ws   *websocket.Conn
-		exec *docker.Exec
-	)
-
-	ws, err = upgrader.Upgrade(w, r, nil)
+func (server *EntryServer) enter(w http.ResponseWriter, r *http.Request) {
+	ws, containerID, err := server.prepare(w, r)
+	if ws != nil {
+		defer ws.Close()
+	}
 	if err != nil {
-		log.Errorf("Upgrade websocket protocol error: %s", err.Error())
 		return
 	}
-	defer ws.Close()
+	var exec *docker.Exec
 
-	if err = server.auth(accessToken, appName); err != nil {
-		errMsg := fmt.Sprintf(errMsgTemplate, "Authorization failed.")
-		log.Errorf("Authorization failed: %s", err.Error())
-		server.sendCloseMessage(ws, []byte(errMsg))
-		return
-	}
-
-	var containerID string
-	if containerID, err = server.getContainerID(appName, procName, instanceNo); err != nil {
-		errMsg := fmt.Sprintf(errMsgTemplate, "Container is not found.")
-		log.Errorf("Find container %s[%s-%s] error: %s", appName, procName, instanceNo, err.Error())
-		server.sendCloseMessage(ws, []byte(errMsg))
-		return
-	}
-
+	execCmd := []string{"env", fmt.Sprintf("TERM=%s", r.Header.Get("term-type")), "/bin/bash"}
 	opts := docker.CreateExecOptions{
 		Container:    containerID,
 		AttachStdin:  true,
@@ -160,20 +135,106 @@ func (server EntryServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	go server.handleRequest(ws, stdinPipeWriter, wg, exec.ID)
 	go server.handleResponse(ws, stdoutPipeReader, wg, message.ResponseMessage_STDOUT)
 	go server.handleResponse(ws, stderrPipeReader, wg, message.ResponseMessage_STDERR)
-	server.dockerClient.StartExec(exec.ID, docker.StartExecOptions{
+	if err = server.dockerClient.StartExec(exec.ID, docker.StartExecOptions{
 		Detach:       false,
 		OutputStream: stdoutPipeWriter,
 		ErrorStream:  stderrPipeWriter,
 		InputStream:  stdinPipeReader,
 		RawTerminal:  false,
-	})
+	}); err != nil {
+		errMsg := fmt.Sprintf(errMsgTemplate, "Can't enter your container, try again.")
+		log.Errorf("Start exec failed: %s", err.Error())
+		server.sendCloseMessage(ws, []byte(errMsg))
+	} else {
+		server.sendCloseMessage(ws, []byte(byebyeMsg))
+	}
 
-	// send close message to client if needed
-	server.sendCloseMessage(ws, []byte(byebyeMsg))
 	stdoutPipeWriter.Close()
 	stderrPipeWriter.Close()
 	stdinPipeReader.Close()
 	wg.Wait()
+	log.Infof("Entering to %s stopped", containerID)
+}
+
+func (server *EntryServer) attach(w http.ResponseWriter, r *http.Request) {
+	ws, containerID, err := server.prepare(w, r)
+	if ws != nil {
+		defer ws.Close()
+	}
+	if err != nil {
+		return
+	}
+	stdoutPipeReader, stdoutPipeWriter := io.Pipe()
+	stderrPipeReader, stderrPipeWriter := io.Pipe()
+	wg := &sync.WaitGroup{}
+	wg.Add(2)
+
+	opts := docker.AttachToContainerOptions{
+		Container:    containerID,
+		Stdin:        false,
+		Stdout:       true,
+		Stderr:       true,
+		Stream:       true,
+		OutputStream: stdoutPipeWriter,
+		ErrorStream:  stderrPipeWriter,
+	}
+	go server.handleResponse(ws, stdoutPipeReader, wg, message.ResponseMessage_STDOUT)
+	go server.handleResponse(ws, stderrPipeReader, wg, message.ResponseMessage_STDERR)
+
+	if waiter, err := server.dockerClient.AttachToContainerNonBlocking(opts); err != nil {
+		errMsg := fmt.Sprintf(errMsgTemplate, "Can't attach your container, try again.")
+		log.Errorf("Attach failed: %s", err.Error())
+		server.sendCloseMessage(ws, []byte(errMsg))
+	} else {
+		// Check whether the websocket is closed
+		for {
+			if _, _, err = ws.ReadMessage(); err == nil {
+				time.Sleep(10 * time.Millisecond)
+			} else {
+				break
+			}
+		}
+		waiter.Close()
+	}
+	stdoutPipeWriter.Close()
+	stderrPipeWriter.Close()
+	wg.Wait()
+	log.Infof("Attaching to %s stopped", containerID)
+}
+
+func (server *EntryServer) prepare(w http.ResponseWriter, r *http.Request) (*websocket.Conn, string, error) {
+	accessToken := r.Header.Get("access-token")
+	appName := r.Header.Get("app-name")
+	procName := r.Header.Get("proc-name")
+	instanceNo := r.Header.Get("instance-no")
+
+	var containerID string
+	log.Infof("A user wants to enter %s[%s-%s]", appName, procName, instanceNo)
+
+	var (
+		err error
+		ws  *websocket.Conn
+	)
+
+	ws, err = upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Errorf("Upgrade websocket protocol error: %s", err.Error())
+		return ws, containerID, err
+	}
+
+	if err = server.auth(accessToken, appName); err != nil {
+		errMsg := fmt.Sprintf(errMsgTemplate, "Authorization failed.")
+		log.Errorf("Authorization failed: %s", err.Error())
+		server.sendCloseMessage(ws, []byte(errMsg))
+		return ws, containerID, err
+	}
+
+	if containerID, err = server.getContainerID(appName, procName, instanceNo); err != nil {
+		errMsg := fmt.Sprintf(errMsgTemplate, "Container is not found.")
+		log.Errorf("Find container %s[%s-%s] error: %s", appName, procName, instanceNo, err.Error())
+		server.sendCloseMessage(ws, []byte(errMsg))
+	}
+	return ws, containerID, err
 }
 
 func (server *EntryServer) handleRequest(ws *websocket.Conn, sessionWriter io.WriteCloser, wg *sync.WaitGroup, execID string) {
