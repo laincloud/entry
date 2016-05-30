@@ -76,7 +76,7 @@ class EntryClient:
         finally:
             self._close()
 
-    def attach_container(self, endpoint, header):
+    def attach_container(self):
         try:
             while True:
                 data = self._ws.recv()
@@ -90,6 +90,7 @@ class EntryClient:
     def _close(self):
         termios.tcsetattr(self._utf_in, termios.TCSADRAIN, self._oldtty)
         signal.signal(signal.SIGWINCH, self._old_handler)
+        self._ws.close()
         print ''
 
     def _is_close_message(self, msg):

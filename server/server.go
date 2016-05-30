@@ -153,6 +153,7 @@ func (server *EntryServer) enter(w http.ResponseWriter, r *http.Request) {
 	stderrPipeWriter.Close()
 	stdinPipeReader.Close()
 	wg.Wait()
+	log.Infof("Entering to %s stopped", containerID)
 }
 
 func (server *EntryServer) attach(w http.ResponseWriter, r *http.Request) {
@@ -173,21 +174,32 @@ func (server *EntryServer) attach(w http.ResponseWriter, r *http.Request) {
 		Stdin:        false,
 		Stdout:       true,
 		Stderr:       true,
+		Stream:       true,
 		OutputStream: stdoutPipeWriter,
 		ErrorStream:  stderrPipeWriter,
 	}
 	go server.handleResponse(ws, stdoutPipeReader, wg, message.ResponseMessage_STDOUT)
 	go server.handleResponse(ws, stderrPipeReader, wg, message.ResponseMessage_STDERR)
-	if err := server.dockerClient.AttachToContainer(opts); err != nil {
+
+	if waiter, err := server.dockerClient.AttachToContainerNonBlocking(opts); err != nil {
 		errMsg := fmt.Sprintf(errMsgTemplate, "Can't attach your container, try again.")
 		log.Errorf("Attach failed: %s", err.Error())
 		server.sendCloseMessage(ws, []byte(errMsg))
 	} else {
-		server.sendCloseMessage(ws, []byte(byebyeMsg))
+		// Check whether the websocket is closed
+		for {
+			if _, _, err = ws.ReadMessage(); err == nil {
+				time.Sleep(10 * time.Millisecond)
+			} else {
+				break
+			}
+		}
+		waiter.Close()
 	}
 	stdoutPipeWriter.Close()
 	stderrPipeWriter.Close()
 	wg.Wait()
+	log.Infof("Attaching to %s stopped", containerID)
 }
 
 func (server *EntryServer) prepare(w http.ResponseWriter, r *http.Request) (*websocket.Conn, string, error) {
