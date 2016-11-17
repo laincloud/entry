@@ -242,6 +242,7 @@ func (server *EntryServer) handleRequest(ws *websocket.Conn, sessionWriter io.Wr
 		err   error
 		wsMsg []byte
 	)
+	time.Sleep(time.Second)
 	inMsg := message.RequestMessage{}
 	for err == nil {
 		if _, wsMsg, err = ws.ReadMessage(); err == nil {
@@ -262,6 +263,10 @@ func (server *EntryServer) handleRequest(ws *websocket.Conn, sessionWriter io.Wr
 			}
 		}
 	}
+	if err != nil {
+		log.Errorf("HandleRequest ended: %s", err.Error())
+	}
+
 	sessionWriter.Close()
 	wg.Done()
 }
@@ -296,6 +301,10 @@ func (server *EntryServer) handleResponse(ws *websocket.Conn, sessionReader io.R
 			}
 		}
 	}
+	if err != nil {
+		log.Errorf("HandleResponse ended: %s", err.Error())
+	}
+
 	sessionReader.Close()
 	wg.Done()
 }

@@ -1,7 +1,7 @@
 appname: entry
 
 build:
-    base: laincloud/centos-lain:20160503
+    base: laincloud/centos-lain:20160919
     prepare:
         version: 200
         script:

@@ -10,6 +10,7 @@ import (
 	"syscall"
 
 	"github.com/docker/docker/pkg/system"
+	rsystem "github.com/opencontainers/runc/libcontainer/system"
 )
 
 // fixVolumePathPrefix does platform specific processing to ensure that if
@@ -19,7 +20,7 @@ func fixVolumePathPrefix(srcPath string) string {
 }
 
 // getWalkRoot calculates the root path when performing a TarWithOptions.
-// We use a seperate function as this is platform specific. On Linux, we
+// We use a separate function as this is platform specific. On Linux, we
 // can't use filepath.Join(srcPath,include) because this will clean away
 // a trailing "." or "/" which may be important.
 func getWalkRoot(srcPath string, include string) string {
@@ -80,6 +81,11 @@ func minor(device uint64) uint64 {
 // handleTarTypeBlockCharFifo is an OS-specific helper function used by
 // createTarFile to handle the following types of header: Block; Char; Fifo
 func handleTarTypeBlockCharFifo(hdr *tar.Header, path string) error {
+	if rsystem.RunningInUserNS() {
+		// cannot create a device if running in user namespace
+		return nil
+	}
+
 	mode := uint32(hdr.Mode & 07777)
 	switch hdr.Typeflag {
 	case tar.TypeBlock:

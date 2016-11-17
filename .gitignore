@@ -1,3 +1,5 @@
+.idea
+entry.iml
 *.pyc
 test.py
 test_client.py
