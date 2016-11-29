@@ -44,6 +44,9 @@ type ConsoleAuthResponse struct {
 }
 
 type CoreInfo map[string]AppInfo
+type ViaMethod int
+type Marshaler func(interface{}) ([]byte, error)
+type Unmarshaler func([]byte, interface{}) error
 
 type Container struct {
 	ContainerID string `json:"ContainerId"`
@@ -59,10 +62,12 @@ type PodInfo struct {
 }
 
 const (
-	readBufferSize  = 1024
-	writeBufferSize = 10240 //The write buffer size should be large
-	byebyeMsg       = "\033[32m>>> You quit the container safely.\033[0m"
-	errMsgTemplate  = "\033[31m>>> %s\033[0m"
+	readBufferSize            = 1024
+	writeBufferSize           = 10240 //The write buffer size should be large
+	byebyeMsg                 = "\033[32m>>> You quit the container safely.\033[0m"
+	errMsgTemplate            = "\033[31m>>> %s\033[0m"
+	viaCLI          ViaMethod = 0
+	viaWeb          ViaMethod = 1
 )
 
 var (
@@ -110,7 +115,12 @@ func (server *EntryServer) enter(w http.ResponseWriter, r *http.Request) {
 	}
 	var exec *docker.Exec
 
-	execCmd := []string{"env", fmt.Sprintf("TERM=%s", r.Header.Get("term-type")), "/bin/bash"}
+	termType := r.Header.Get("term-type")
+	if len(termType) == 0 {
+		termType = "xterm-256color"
+	}
+
+	execCmd := []string{"env", fmt.Sprintf("TERM=%s", termType), "/bin/bash"}
 	opts := docker.CreateExecOptions{
 		Container:    containerID,
 		AttachStdin:  true,
@@ -120,10 +130,12 @@ func (server *EntryServer) enter(w http.ResponseWriter, r *http.Request) {
 		Cmd:          execCmd,
 	}
 
+	msgMarshaller, msgUnmarshaller := getMarshalers(r)
+
 	if exec, err = server.dockerClient.CreateExec(opts); err != nil {
 		errMsg := fmt.Sprintf(errMsgTemplate, "Can't enter your container, try again.")
 		log.Errorf("Create exec failed: %s", err.Error())
-		server.sendCloseMessage(ws, []byte(errMsg))
+		server.sendCloseMessage(ws, []byte(errMsg), msgMarshaller)
 		return
 	}
 
@@ -132,9 +144,9 @@ func (server *EntryServer) enter(w http.ResponseWriter, r *http.Request) {
 	stderrPipeReader, stderrPipeWriter := io.Pipe()
 	wg := &sync.WaitGroup{}
 	wg.Add(3)
-	go server.handleRequest(ws, stdinPipeWriter, wg, exec.ID)
-	go server.handleResponse(ws, stdoutPipeReader, wg, message.ResponseMessage_STDOUT)
-	go server.handleResponse(ws, stderrPipeReader, wg, message.ResponseMessage_STDERR)
+	go server.handleRequest(ws, stdinPipeWriter, wg, exec.ID, msgUnmarshaller)
+	go server.handleResponse(ws, stdoutPipeReader, wg, message.ResponseMessage_STDOUT, msgMarshaller)
+	go server.handleResponse(ws, stderrPipeReader, wg, message.ResponseMessage_STDERR, msgMarshaller)
 	if err = server.dockerClient.StartExec(exec.ID, docker.StartExecOptions{
 		Detach:       false,
 		OutputStream: stdoutPipeWriter,
@@ -144,9 +156,9 @@ func (server *EntryServer) enter(w http.ResponseWriter, r *http.Request) {
 	}); err != nil {
 		errMsg := fmt.Sprintf(errMsgTemplate, "Can't enter your container, try again.")
 		log.Errorf("Start exec failed: %s", err.Error())
-		server.sendCloseMessage(ws, []byte(errMsg))
+		server.sendCloseMessage(ws, []byte(errMsg), msgMarshaller)
 	} else {
-		server.sendCloseMessage(ws, []byte(byebyeMsg))
+		server.sendCloseMessage(ws, []byte(byebyeMsg), msgMarshaller)
 	}
 
 	stdoutPipeWriter.Close()
@@ -178,13 +190,15 @@ func (server *EntryServer) attach(w http.ResponseWriter, r *http.Request) {
 		OutputStream: stdoutPipeWriter,
 		ErrorStream:  stderrPipeWriter,
 	}
-	go server.handleResponse(ws, stdoutPipeReader, wg, message.ResponseMessage_STDOUT)
-	go server.handleResponse(ws, stderrPipeReader, wg, message.ResponseMessage_STDERR)
+
+	msgMarshaller, _ := getMarshalers(r)
+	go server.handleResponse(ws, stdoutPipeReader, wg, message.ResponseMessage_STDOUT, msgMarshaller)
+	go server.handleResponse(ws, stderrPipeReader, wg, message.ResponseMessage_STDERR, msgMarshaller)
 
 	if waiter, err := server.dockerClient.AttachToContainerNonBlocking(opts); err != nil {
 		errMsg := fmt.Sprintf(errMsgTemplate, "Can't attach your container, try again.")
 		log.Errorf("Attach failed: %s", err.Error())
-		server.sendCloseMessage(ws, []byte(errMsg))
+		server.sendCloseMessage(ws, []byte(errMsg), msgMarshaller)
 	} else {
 		// Check whether the websocket is closed
 		for {
@@ -204,9 +218,18 @@ func (server *EntryServer) attach(w http.ResponseWriter, r *http.Request) {
 
 func (server *EntryServer) prepare(w http.ResponseWriter, r *http.Request) (*websocket.Conn, string, error) {
 	accessToken := r.Header.Get("access-token")
-	appName := r.Header.Get("app-name")
-	procName := r.Header.Get("proc-name")
-	instanceNo := r.Header.Get("instance-no")
+	var appName, procName, instanceNo string
+	msgMarshaller, _ := getMarshalers(r)
+	viaMethod := getViaMethod(r)
+	if viaMethod == viaCLI {
+		appName = r.Header.Get("app-name")
+		procName = r.Header.Get("proc-name")
+		instanceNo = r.Header.Get("instance-no")
+	} else {
+		appName = r.URL.Query().Get("app_name")
+		procName = r.URL.Query().Get("proc_name")
+		instanceNo = r.URL.Query().Get("instance_no")
+	}
 
 	var containerID string
 	log.Infof("A user wants to enter %s[%s-%s]", appName, procName, instanceNo)
@@ -225,19 +248,19 @@ func (server *EntryServer) prepare(w http.ResponseWriter, r *http.Request) (*web
 	if err = server.auth(accessToken, appName); err != nil {
 		errMsg := fmt.Sprintf(errMsgTemplate, "Authorization failed.")
 		log.Errorf("Authorization failed: %s", err.Error())
-		server.sendCloseMessage(ws, []byte(errMsg))
+		server.sendCloseMessage(ws, []byte(errMsg), msgMarshaller)
 		return ws, containerID, err
 	}
 
 	if containerID, err = server.getContainerID(appName, procName, instanceNo); err != nil {
 		errMsg := fmt.Sprintf(errMsgTemplate, "Container is not found.")
 		log.Errorf("Find container %s[%s-%s] error: %s", appName, procName, instanceNo, err.Error())
-		server.sendCloseMessage(ws, []byte(errMsg))
+		server.sendCloseMessage(ws, []byte(errMsg), msgMarshaller)
 	}
 	return ws, containerID, err
 }
 
-func (server *EntryServer) handleRequest(ws *websocket.Conn, sessionWriter io.WriteCloser, wg *sync.WaitGroup, execID string) {
+func (server *EntryServer) handleRequest(ws *websocket.Conn, sessionWriter io.WriteCloser, wg *sync.WaitGroup, execID string, msgUnmarshaller Unmarshaler) {
 	var (
 		err   error
 		wsMsg []byte
@@ -246,7 +269,7 @@ func (server *EntryServer) handleRequest(ws *websocket.Conn, sessionWriter io.Wr
 	inMsg := message.RequestMessage{}
 	for err == nil {
 		if _, wsMsg, err = ws.ReadMessage(); err == nil {
-			if unmarshalErr := proto.Unmarshal(wsMsg, &inMsg); unmarshalErr == nil {
+			if unmarshalErr := msgUnmarshaller(wsMsg, &inMsg); unmarshalErr == nil {
 				switch inMsg.MsgType {
 				case message.RequestMessage_PLAIN:
 					if len(inMsg.Content) > 0 {
@@ -271,7 +294,7 @@ func (server *EntryServer) handleRequest(ws *websocket.Conn, sessionWriter io.Wr
 	wg.Done()
 }
 
-func (server *EntryServer) handleResponse(ws *websocket.Conn, sessionReader io.ReadCloser, wg *sync.WaitGroup, respType message.ResponseMessage_ResponseType) {
+func (server *EntryServer) handleResponse(ws *websocket.Conn, sessionReader io.ReadCloser, wg *sync.WaitGroup, respType message.ResponseMessage_ResponseType, msgMarshaller Marshaler) {
 	var (
 		err  error
 		size int
@@ -289,7 +312,7 @@ func (server *EntryServer) handleResponse(ws *websocket.Conn, sessionReader io.R
 				MsgType: respType,
 				Content: buf[:validLen],
 			}
-			data, marshalErr := proto.Marshal(outMsg)
+			data, marshalErr := msgMarshaller(outMsg)
 			if marshalErr == nil {
 				err = ws.WriteMessage(websocket.BinaryMessage, data)
 				cursor := size - validLen
@@ -392,12 +415,12 @@ func (server *EntryServer) getContainerID(appName, procName, instanceNo string) 
 	return "", fmt.Errorf("get data successfully but not found the container")
 }
 
-func (server *EntryServer) sendCloseMessage(ws *websocket.Conn, content []byte) {
+func (server *EntryServer) sendCloseMessage(ws *websocket.Conn, content []byte, msgMarshaller Marshaler) {
 	closeMsg := &message.ResponseMessage{
 		MsgType: message.ResponseMessage_CLOSE,
 		Content: content,
 	}
-	if closeData, err := proto.Marshal(closeMsg); err != nil {
+	if closeData, err := msgMarshaller(closeMsg); err != nil {
 		log.Errorf("Marshal close message failed: %s", err.Error())
 	} else {
 		ws.WriteMessage(websocket.BinaryMessage, closeData)
@@ -448,4 +471,27 @@ func getAppProcName(key []string) (string, string) {
 		tmp = append(tmp, key[i])
 	}
 	return strings.Join(tmp, "."), procName
+}
+
+func getViaMethod(r *http.Request) ViaMethod {
+	if r.URL.Query().Get("method") == "web" {
+		return viaWeb
+	}
+	return viaCLI
+}
+
+func getMarshalers(r *http.Request) (Marshaler, Unmarshaler) {
+	if getViaMethod(r) == viaCLI {
+		return protoMarshalFunc, protoUnmarshalFunc
+	}
+	return json.Marshal, json.Unmarshal
+}
+
+// Adapters
+func protoMarshalFunc(v interface{}) ([]byte, error) {
+	return proto.Marshal(v.(proto.Message))
+}
+
+func protoUnmarshalFunc(data []byte, v interface{}) error {
+	return proto.Unmarshal(data, v.(proto.Message))
 }
