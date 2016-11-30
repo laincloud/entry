@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -62,10 +63,11 @@ type PodInfo struct {
 }
 
 const (
-	readBufferSize  = 1024
-	writeBufferSize = 10240 //The write buffer size should be large
-	byebyeMsg       = "\033[32m>>> You quit the container safely.\033[0m"
-	errMsgTemplate  = "\033[31m>>> %s\033[0m"
+	readBufferSize         = 1024
+	writeBufferSize        = 10240 //The write buffer size should be large
+	aliveDecectionInterval = time.Second * 10
+	byebyeMsg              = "\033[32m>>> You quit the container safely.\033[0m"
+	errMsgTemplate         = "\033[31m>>> %s\033[0m"
 )
 
 var (
@@ -74,9 +76,10 @@ var (
 		WriteBufferSize: writeBufferSize,
 		CheckOrigin:     func(r *http.Request) bool { return true },
 	}
-	errAuthFailed       = fmt.Errorf("authorize failed")
-	errAuthNotSupported = fmt.Errorf("entry only works on lain-sso authorization")
-	lainDomain          = os.Getenv("LAIN_DOMAIN")
+	errAuthFailed        = errors.New("authorize failed")
+	errAuthNotSupported  = errors.New("entry only works on lain-sso authorization")
+	errContainerNotfound = errors.New("get data successfully but not found the container")
+	lainDomain           = os.Getenv("LAIN_DOMAIN")
 )
 
 //StartServer starts an EntryServer listening on port and connects to DockerSwarm with endpoint.
@@ -140,8 +143,10 @@ func (server *EntryServer) enter(w http.ResponseWriter, r *http.Request) {
 	stdinPipeReader, stdinPipeWriter := io.Pipe()
 	stdoutPipeReader, stdoutPipeWriter := io.Pipe()
 	stderrPipeReader, stderrPipeWriter := io.Pipe()
+	stopSignal := make(chan int)
 	wg := &sync.WaitGroup{}
 	wg.Add(3)
+	go server.handleAliveDetection(ws, stopSignal, msgMarshaller)
 	go server.handleRequest(ws, stdinPipeWriter, wg, exec.ID, msgUnmarshaller)
 	go server.handleResponse(ws, stdoutPipeReader, wg, message.ResponseMessage_STDOUT, msgMarshaller)
 	go server.handleResponse(ws, stderrPipeReader, wg, message.ResponseMessage_STDERR, msgMarshaller)
@@ -163,6 +168,7 @@ func (server *EntryServer) enter(w http.ResponseWriter, r *http.Request) {
 	stderrPipeWriter.Close()
 	stdinPipeReader.Close()
 	wg.Wait()
+	stopSignal <- 0
 	log.Infof("Entering to %s stopped", containerID)
 }
 
@@ -215,32 +221,46 @@ func (server *EntryServer) attach(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *EntryServer) prepare(w http.ResponseWriter, r *http.Request) (*websocket.Conn, string, error) {
-	accessToken := r.Header.Get("access-token")
-	msgMarshaller, _ := getMarshalers(r)
-
-	appName := r.Header.Get("app-name")
-	procName := r.Header.Get("proc-name")
-	instanceNo := r.Header.Get("instance-no")
-
-	var containerID string
-	log.Infof("A user wants to enter %s[%s-%s]", appName, procName, instanceNo)
-
 	var (
 		err error
 		ws  *websocket.Conn
 	)
-
+	isViaWeb := r.URL.Query().Get("method") == "web"
 	ws, err = upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Errorf("Upgrade websocket protocol error: %s", err.Error())
-		return ws, containerID, err
+		return ws, "", err
 	}
+
+	var accessToken, appName, procName, instanceNo string
+	msgMarshaller, _ := getMarshalers(r)
+	if !isViaWeb {
+		accessToken = r.Header.Get("access-token")
+		appName = r.Header.Get("app-name")
+		procName = r.Header.Get("proc-name")
+		instanceNo = r.Header.Get("instance-no")
+	} else {
+		_, msgData, err := ws.ReadMessage()
+		if err != nil {
+			log.Errorf("Read auth message from webclient failed: %s", err.Error())
+			return ws, "", errAuthFailed
+		}
+		msg := make(map[string]string)
+		json.Unmarshal(msgData, &msg)
+		accessToken = msg["access_token"]
+		appName = msg["app_name"]
+		procName = msg["proc_name"]
+		instanceNo = msg["instance_no"]
+	}
+
+	var containerID string
+	log.Infof("A user wants to enter %s[%s-%s]", appName, procName, instanceNo)
 
 	if err = server.auth(accessToken, appName); err != nil {
 		errMsg := fmt.Sprintf(errMsgTemplate, "Authorization failed.")
 		log.Errorf("Authorization failed: %s", err.Error())
 		server.sendCloseMessage(ws, []byte(errMsg), msgMarshaller)
-		return ws, containerID, err
+		return ws, containerID, errAuthFailed
 	}
 
 	if containerID, err = server.getContainerID(appName, procName, instanceNo); err != nil {
@@ -323,6 +343,23 @@ func (server *EntryServer) handleResponse(ws *websocket.Conn, sessionReader io.R
 	wg.Done()
 }
 
+func (server *EntryServer) handleAliveDetection(ws *websocket.Conn, isStop chan int, msgMarshaller Marshaler) {
+	pingMsg := &message.ResponseMessage{
+		MsgType: message.ResponseMessage_STDOUT,
+		Content: make([]byte, 0),
+	}
+	data, _ := msgMarshaller(pingMsg)
+	ticker := time.NewTicker(aliveDecectionInterval)
+	for {
+		select {
+		case <-isStop:
+			return
+		case <-ticker.C:
+			ws.WriteMessage(websocket.BinaryMessage, data)
+		}
+	}
+}
+
 // auth authorizes whether the client with the token has the right to access the application
 func (server *EntryServer) auth(token, appName string) error {
 	var (
@@ -403,7 +440,7 @@ func (server *EntryServer) getContainerID(appName, procName, instanceNo string) 
 			}
 		}
 	}
-	return "", fmt.Errorf("get data successfully but not found the container")
+	return "", errContainerNotfound
 }
 
 func (server *EntryServer) sendCloseMessage(ws *websocket.Conn, content []byte, msgMarshaller Marshaler) {

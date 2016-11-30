@@ -52,7 +52,7 @@ class EntryClient:
                     r, w, e = select.select(read_list, [], [])
                     if self._ws.sock in r:
                         data = self._ws.recv()
-                        if not data or self._is_close_message(data):
+                        if self._is_close_message(data):
                             break
                     if self._utf_in in r:
                         utf8char = ""
