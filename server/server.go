@@ -62,12 +62,10 @@ type PodInfo struct {
 }
 
 const (
-	readBufferSize            = 1024
-	writeBufferSize           = 10240 //The write buffer size should be large
-	byebyeMsg                 = "\033[32m>>> You quit the container safely.\033[0m"
-	errMsgTemplate            = "\033[31m>>> %s\033[0m"
-	viaCLI          ViaMethod = 0
-	viaWeb          ViaMethod = 1
+	readBufferSize  = 1024
+	writeBufferSize = 10240 //The write buffer size should be large
+	byebyeMsg       = "\033[32m>>> You quit the container safely.\033[0m"
+	errMsgTemplate  = "\033[31m>>> %s\033[0m"
 )
 
 var (
@@ -218,18 +216,11 @@ func (server *EntryServer) attach(w http.ResponseWriter, r *http.Request) {
 
 func (server *EntryServer) prepare(w http.ResponseWriter, r *http.Request) (*websocket.Conn, string, error) {
 	accessToken := r.Header.Get("access-token")
-	var appName, procName, instanceNo string
 	msgMarshaller, _ := getMarshalers(r)
-	viaMethod := getViaMethod(r)
-	if viaMethod == viaCLI {
-		appName = r.Header.Get("app-name")
-		procName = r.Header.Get("proc-name")
-		instanceNo = r.Header.Get("instance-no")
-	} else {
-		appName = r.URL.Query().Get("app_name")
-		procName = r.URL.Query().Get("proc_name")
-		instanceNo = r.URL.Query().Get("instance_no")
-	}
+
+	appName := r.Header.Get("app-name")
+	procName := r.Header.Get("proc-name")
+	instanceNo := r.Header.Get("instance-no")
 
 	var containerID string
 	log.Infof("A user wants to enter %s[%s-%s]", appName, procName, instanceNo)
@@ -473,18 +464,11 @@ func getAppProcName(key []string) (string, string) {
 	return strings.Join(tmp, "."), procName
 }
 
-func getViaMethod(r *http.Request) ViaMethod {
-	if r.URL.Query().Get("method") == "web" {
-		return viaWeb
-	}
-	return viaCLI
-}
-
 func getMarshalers(r *http.Request) (Marshaler, Unmarshaler) {
-	if getViaMethod(r) == viaCLI {
-		return protoMarshalFunc, protoUnmarshalFunc
+	if r.URL.Query().Get("method") == "web" {
+		return json.Marshal, json.Unmarshal
 	}
-	return json.Marshal, json.Unmarshal
+	return protoMarshalFunc, protoUnmarshalFunc
 }
 
 // Adapters
