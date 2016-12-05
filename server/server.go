@@ -345,8 +345,8 @@ func (server *EntryServer) handleResponse(ws *websocket.Conn, sessionReader io.R
 
 func (server *EntryServer) handleAliveDetection(ws *websocket.Conn, isStop chan int, msgMarshaller Marshaler) {
 	pingMsg := &message.ResponseMessage{
-		MsgType: message.ResponseMessage_STDOUT,
-		Content: make([]byte, 0),
+		MsgType: message.ResponseMessage_PING,
+		Content: []byte("ping"),
 	}
 	data, _ := msgMarshaller(pingMsg)
 	ticker := time.NewTicker(aliveDecectionInterval)

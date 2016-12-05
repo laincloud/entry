@@ -17,6 +17,7 @@ message ResponseMessage {
         STDOUT = 0;
         STDERR = 1;
         CLOSE = 2;
+        PING = 3;
     }
 
     ResponseType msgType = 1;

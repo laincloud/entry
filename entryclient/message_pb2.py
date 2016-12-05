@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='message.proto',
   package='message',
   syntax='proto3',
-  serialized_pb=_b('\n\rmessage.proto\x12\x07message\"|\n\x0eRequestMessage\x12\x34\n\x07msgType\x18\x01 \x01(\x0e\x32#.message.RequestMessage.RequestType\x12\x0f\n\x07\x63ontent\x18\x02 \x01(\x0c\"#\n\x0bRequestType\x12\t\n\x05PLAIN\x10\x00\x12\t\n\x05WINCH\x10\x01\"\x8d\x01\n\x0fResponseMessage\x12\x36\n\x07msgType\x18\x01 \x01(\x0e\x32%.message.ResponseMessage.ResponseType\x12\x0f\n\x07\x63ontent\x18\x02 \x01(\x0c\"1\n\x0cResponseType\x12\n\n\x06STDOUT\x10\x00\x12\n\n\x06STDERR\x10\x01\x12\t\n\x05\x43LOSE\x10\x02\x62\x06proto3')
+  serialized_pb=_b('\n\rmessage.proto\x12\x07message\"|\n\x0eRequestMessage\x12\x34\n\x07msgType\x18\x01 \x01(\x0e\x32#.message.RequestMessage.RequestType\x12\x0f\n\x07\x63ontent\x18\x02 \x01(\x0c\"#\n\x0bRequestType\x12\t\n\x05PLAIN\x10\x00\x12\t\n\x05WINCH\x10\x01\"\x97\x01\n\x0fResponseMessage\x12\x36\n\x07msgType\x18\x01 \x01(\x0e\x32%.message.ResponseMessage.ResponseType\x12\x0f\n\x07\x63ontent\x18\x02 \x01(\x0c\";\n\x0cResponseType\x12\n\n\x06STDOUT\x10\x00\x12\n\n\x06STDERR\x10\x01\x12\t\n\x05\x43LOSE\x10\x02\x12\x08\n\x04PING\x10\x03\x62\x06proto3')
 )
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
@@ -65,11 +65,15 @@ _RESPONSEMESSAGE_RESPONSETYPE = _descriptor.EnumDescriptor(
       name='CLOSE', index=2, number=2,
       options=None,
       type=None),
+    _descriptor.EnumValueDescriptor(
+      name='PING', index=3, number=3,
+      options=None,
+      type=None),
   ],
   containing_type=None,
   options=None,
   serialized_start=245,
-  serialized_end=294,
+  serialized_end=304,
 )
 _sym_db.RegisterEnumDescriptor(_RESPONSEMESSAGE_RESPONSETYPE)
 
@@ -148,7 +152,7 @@ _RESPONSEMESSAGE = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=153,
-  serialized_end=294,
+  serialized_end=304,
 )
 
 _REQUESTMESSAGE.fields_by_name['msgType'].enum_type = _REQUESTMESSAGE_REQUESTTYPE
