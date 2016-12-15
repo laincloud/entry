@@ -94,7 +94,7 @@ func StartServer(port, endpoint string) {
 				dockerClient:  client,
 				lainletClient: lainlet.New(net.JoinHostPort("lainlet.lain", os.Getenv("LAINLET_PORT"))),
 				httpClient: &http.Client{
-					Timeout: 2 * time.Second,
+					Timeout: 4 * time.Second,
 				},
 			}
 			break
