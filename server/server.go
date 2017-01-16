@@ -27,7 +27,6 @@ type EntryServer struct {
 	dockerClient  *docker.Client
 	lainletClient *lainlet.Client
 	httpClient    *http.Client
-	readLock      *sync.Mutex
 	writeLock     *sync.Mutex
 }
 
@@ -98,7 +97,6 @@ func StartServer(port, endpoint string) {
 				httpClient: &http.Client{
 					Timeout: 4 * time.Second,
 				},
-				readLock:  &sync.Mutex{},
 				writeLock: &sync.Mutex{},
 			}
 			break
@@ -210,12 +208,9 @@ func (server *EntryServer) attach(w http.ResponseWriter, r *http.Request) {
 	} else {
 		// Check whether the websocket is closed
 		for {
-			server.readLock.Lock()
 			if _, _, err = ws.ReadMessage(); err == nil {
-				server.readLock.Unlock()
 				time.Sleep(10 * time.Millisecond)
 			} else {
-				server.readLock.Unlock()
 				break
 			}
 		}
@@ -247,9 +242,7 @@ func (server *EntryServer) prepare(w http.ResponseWriter, r *http.Request) (*web
 		procName = r.Header.Get("proc-name")
 		instanceNo = r.Header.Get("instance-no")
 	} else {
-		server.readLock.Lock()
 		_, msgData, err := ws.ReadMessage()
-		server.readLock.Unlock()
 		if err != nil {
 			log.Errorf("Read auth message from webclient failed: %s", err.Error())
 			return ws, "", errAuthFailed
@@ -288,9 +281,7 @@ func (server *EntryServer) handleRequest(ws *websocket.Conn, sessionWriter io.Wr
 	time.Sleep(time.Second)
 	inMsg := message.RequestMessage{}
 	for err == nil {
-		server.readLock.Lock()
 		if _, wsMsg, err = ws.ReadMessage(); err == nil {
-			server.readLock.Unlock()
 			if unmarshalErr := msgUnmarshaller(wsMsg, &inMsg); unmarshalErr == nil {
 				switch inMsg.MsgType {
 				case message.RequestMessage_PLAIN:
@@ -306,8 +297,6 @@ func (server *EntryServer) handleRequest(ws *websocket.Conn, sessionWriter io.Wr
 			} else {
 				log.Errorf("Unmarshall request error: %s", unmarshalErr.Error())
 			}
-		} else {
-			server.readLock.Unlock()
 		}
 	}
 	if err != nil {
