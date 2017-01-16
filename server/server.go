@@ -27,6 +27,8 @@ type EntryServer struct {
 	dockerClient  *docker.Client
 	lainletClient *lainlet.Client
 	httpClient    *http.Client
+	readLock      *sync.Mutex
+	writeLock     *sync.Mutex
 }
 
 type ConsoleAuthConf struct {
@@ -96,6 +98,8 @@ func StartServer(port, endpoint string) {
 				httpClient: &http.Client{
 					Timeout: 4 * time.Second,
 				},
+				readLock:  &sync.Mutex{},
+				writeLock: &sync.Mutex{},
 			}
 			break
 		}
@@ -206,9 +210,12 @@ func (server *EntryServer) attach(w http.ResponseWriter, r *http.Request) {
 	} else {
 		// Check whether the websocket is closed
 		for {
+			server.readLock.Lock()
 			if _, _, err = ws.ReadMessage(); err == nil {
+				server.readLock.Unlock()
 				time.Sleep(10 * time.Millisecond)
 			} else {
+				server.readLock.Unlock()
 				break
 			}
 		}
@@ -240,7 +247,9 @@ func (server *EntryServer) prepare(w http.ResponseWriter, r *http.Request) (*web
 		procName = r.Header.Get("proc-name")
 		instanceNo = r.Header.Get("instance-no")
 	} else {
+		server.readLock.Lock()
 		_, msgData, err := ws.ReadMessage()
+		server.readLock.Unlock()
 		if err != nil {
 			log.Errorf("Read auth message from webclient failed: %s", err.Error())
 			return ws, "", errAuthFailed
@@ -279,7 +288,9 @@ func (server *EntryServer) handleRequest(ws *websocket.Conn, sessionWriter io.Wr
 	time.Sleep(time.Second)
 	inMsg := message.RequestMessage{}
 	for err == nil {
+		server.readLock.Lock()
 		if _, wsMsg, err = ws.ReadMessage(); err == nil {
+			server.readLock.Unlock()
 			if unmarshalErr := msgUnmarshaller(wsMsg, &inMsg); unmarshalErr == nil {
 				switch inMsg.MsgType {
 				case message.RequestMessage_PLAIN:
@@ -295,6 +306,8 @@ func (server *EntryServer) handleRequest(ws *websocket.Conn, sessionWriter io.Wr
 			} else {
 				log.Errorf("Unmarshall request error: %s", unmarshalErr.Error())
 			}
+		} else {
+			server.readLock.Unlock()
 		}
 	}
 	if err != nil {
@@ -325,7 +338,9 @@ func (server *EntryServer) handleResponse(ws *websocket.Conn, sessionReader io.R
 			}
 			data, marshalErr := msgMarshaller(outMsg)
 			if marshalErr == nil {
+				server.writeLock.Lock()
 				err = ws.WriteMessage(websocket.BinaryMessage, data)
+				server.writeLock.Unlock()
 				cursor := size - validLen
 				for i := 0; i < cursor; i++ {
 					buf[i] = buf[cursor+i]
@@ -355,7 +370,9 @@ func (server *EntryServer) handleAliveDetection(ws *websocket.Conn, isStop chan 
 		case <-isStop:
 			return
 		case <-ticker.C:
+			server.writeLock.Lock()
 			ws.WriteMessage(websocket.BinaryMessage, data)
+			server.writeLock.Unlock()
 		}
 	}
 }
@@ -451,7 +468,9 @@ func (server *EntryServer) sendCloseMessage(ws *websocket.Conn, content []byte, 
 	if closeData, err := msgMarshaller(closeMsg); err != nil {
 		log.Errorf("Marshal close message failed: %s", err.Error())
 	} else {
+		server.writeLock.Lock()
 		ws.WriteMessage(websocket.BinaryMessage, closeData)
+		server.writeLock.Unlock()
 	}
 }
 
