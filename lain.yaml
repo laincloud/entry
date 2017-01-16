@@ -1,9 +1,9 @@
 appname: entry
 
 build:
-    base: laincloud/centos-lain:20160919
+    base: laincloud/centos-lain:20170103
     prepare:
-        version: 200
+        version: 201
         script:
             - mkdir -p $GOPATH/src/github.com/laincloud
     script:
