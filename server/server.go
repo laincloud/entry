@@ -27,7 +27,6 @@ type EntryServer struct {
 	dockerClient  *docker.Client
 	lainletClient *lainlet.Client
 	httpClient    *http.Client
-	writeLock     *sync.Mutex
 }
 
 type ConsoleAuthConf struct {
@@ -97,7 +96,6 @@ func StartServer(port, endpoint string) {
 				httpClient: &http.Client{
 					Timeout: 4 * time.Second,
 				},
-				writeLock: &sync.Mutex{},
 			}
 			break
 		}
@@ -134,11 +132,12 @@ func (server *EntryServer) enter(w http.ResponseWriter, r *http.Request) {
 	}
 
 	msgMarshaller, msgUnmarshaller := getMarshalers(r)
+	writeLock := &sync.Mutex{}
 
 	if exec, err = server.dockerClient.CreateExec(opts); err != nil {
 		errMsg := fmt.Sprintf(errMsgTemplate, "Can't enter your container, try again.")
 		log.Errorf("Create exec failed: %s", err.Error())
-		server.sendCloseMessage(ws, []byte(errMsg), msgMarshaller)
+		server.sendCloseMessage(ws, []byte(errMsg), msgMarshaller, writeLock)
 		return
 	}
 
@@ -148,10 +147,10 @@ func (server *EntryServer) enter(w http.ResponseWriter, r *http.Request) {
 	stopSignal := make(chan int)
 	wg := &sync.WaitGroup{}
 	wg.Add(3)
-	go server.handleAliveDetection(ws, stopSignal, msgMarshaller)
+	go server.handleAliveDetection(ws, stopSignal, msgMarshaller, writeLock)
 	go server.handleRequest(ws, stdinPipeWriter, wg, exec.ID, msgUnmarshaller)
-	go server.handleResponse(ws, stdoutPipeReader, wg, message.ResponseMessage_STDOUT, msgMarshaller)
-	go server.handleResponse(ws, stderrPipeReader, wg, message.ResponseMessage_STDERR, msgMarshaller)
+	go server.handleResponse(ws, stdoutPipeReader, wg, message.ResponseMessage_STDOUT, msgMarshaller, writeLock)
+	go server.handleResponse(ws, stderrPipeReader, wg, message.ResponseMessage_STDERR, msgMarshaller, writeLock)
 	if err = server.dockerClient.StartExec(exec.ID, docker.StartExecOptions{
 		Detach:       false,
 		OutputStream: stdoutPipeWriter,
@@ -161,9 +160,9 @@ func (server *EntryServer) enter(w http.ResponseWriter, r *http.Request) {
 	}); err != nil {
 		errMsg := fmt.Sprintf(errMsgTemplate, "Can't enter your container, try again.")
 		log.Errorf("Start exec failed: %s", err.Error())
-		server.sendCloseMessage(ws, []byte(errMsg), msgMarshaller)
+		server.sendCloseMessage(ws, []byte(errMsg), msgMarshaller, writeLock)
 	} else {
-		server.sendCloseMessage(ws, []byte(byebyeMsg), msgMarshaller)
+		server.sendCloseMessage(ws, []byte(byebyeMsg), msgMarshaller, writeLock)
 	}
 
 	stdoutPipeWriter.Close()
@@ -198,13 +197,14 @@ func (server *EntryServer) attach(w http.ResponseWriter, r *http.Request) {
 	}
 
 	msgMarshaller, _ := getMarshalers(r)
-	go server.handleResponse(ws, stdoutPipeReader, wg, message.ResponseMessage_STDOUT, msgMarshaller)
-	go server.handleResponse(ws, stderrPipeReader, wg, message.ResponseMessage_STDERR, msgMarshaller)
+	writeLock := &sync.Mutex{}
+	go server.handleResponse(ws, stdoutPipeReader, wg, message.ResponseMessage_STDOUT, msgMarshaller, writeLock)
+	go server.handleResponse(ws, stderrPipeReader, wg, message.ResponseMessage_STDERR, msgMarshaller, writeLock)
 
 	if waiter, err := server.dockerClient.AttachToContainerNonBlocking(opts); err != nil {
 		errMsg := fmt.Sprintf(errMsgTemplate, "Can't attach your container, try again.")
 		log.Errorf("Attach failed: %s", err.Error())
-		server.sendCloseMessage(ws, []byte(errMsg), msgMarshaller)
+		server.sendCloseMessage(ws, []byte(errMsg), msgMarshaller, writeLock)
 	} else {
 		// Check whether the websocket is closed
 		for {
@@ -257,18 +257,18 @@ func (server *EntryServer) prepare(w http.ResponseWriter, r *http.Request) (*web
 
 	var containerID string
 	log.Infof("A user wants to enter %s[%s-%s]", appName, procName, instanceNo)
-
+	writeLock := &sync.Mutex{}
 	if err = server.auth(accessToken, appName); err != nil {
 		errMsg := fmt.Sprintf(errMsgTemplate, "Authorization failed.")
 		log.Errorf("Authorization failed: %s", err.Error())
-		server.sendCloseMessage(ws, []byte(errMsg), msgMarshaller)
+		server.sendCloseMessage(ws, []byte(errMsg), msgMarshaller, writeLock)
 		return ws, containerID, errAuthFailed
 	}
 
 	if containerID, err = server.getContainerID(appName, procName, instanceNo); err != nil {
 		errMsg := fmt.Sprintf(errMsgTemplate, "Container is not found.")
 		log.Errorf("Find container %s[%s-%s] error: %s", appName, procName, instanceNo, err.Error())
-		server.sendCloseMessage(ws, []byte(errMsg), msgMarshaller)
+		server.sendCloseMessage(ws, []byte(errMsg), msgMarshaller, writeLock)
 	}
 	return ws, containerID, err
 }
@@ -307,7 +307,7 @@ func (server *EntryServer) handleRequest(ws *websocket.Conn, sessionWriter io.Wr
 	wg.Done()
 }
 
-func (server *EntryServer) handleResponse(ws *websocket.Conn, sessionReader io.ReadCloser, wg *sync.WaitGroup, respType message.ResponseMessage_ResponseType, msgMarshaller Marshaler) {
+func (server *EntryServer) handleResponse(ws *websocket.Conn, sessionReader io.ReadCloser, wg *sync.WaitGroup, respType message.ResponseMessage_ResponseType, msgMarshaller Marshaler, writeLock *sync.Mutex) {
 	var (
 		err  error
 		size int
@@ -327,9 +327,9 @@ func (server *EntryServer) handleResponse(ws *websocket.Conn, sessionReader io.R
 			}
 			data, marshalErr := msgMarshaller(outMsg)
 			if marshalErr == nil {
-				server.writeLock.Lock()
+				writeLock.Lock()
 				err = ws.WriteMessage(websocket.BinaryMessage, data)
-				server.writeLock.Unlock()
+				writeLock.Unlock()
 				cursor := size - validLen
 				for i := 0; i < cursor; i++ {
 					buf[i] = buf[cursor+i]
@@ -347,7 +347,7 @@ func (server *EntryServer) handleResponse(ws *websocket.Conn, sessionReader io.R
 	wg.Done()
 }
 
-func (server *EntryServer) handleAliveDetection(ws *websocket.Conn, isStop chan int, msgMarshaller Marshaler) {
+func (server *EntryServer) handleAliveDetection(ws *websocket.Conn, isStop chan int, msgMarshaller Marshaler, writeLock *sync.Mutex) {
 	pingMsg := &message.ResponseMessage{
 		MsgType: message.ResponseMessage_PING,
 		Content: []byte("ping"),
@@ -359,9 +359,9 @@ func (server *EntryServer) handleAliveDetection(ws *websocket.Conn, isStop chan 
 		case <-isStop:
 			return
 		case <-ticker.C:
-			server.writeLock.Lock()
+			writeLock.Lock()
 			ws.WriteMessage(websocket.BinaryMessage, data)
-			server.writeLock.Unlock()
+			writeLock.Unlock()
 		}
 	}
 }
@@ -449,7 +449,7 @@ func (server *EntryServer) getContainerID(appName, procName, instanceNo string) 
 	return "", errContainerNotfound
 }
 
-func (server *EntryServer) sendCloseMessage(ws *websocket.Conn, content []byte, msgMarshaller Marshaler) {
+func (server *EntryServer) sendCloseMessage(ws *websocket.Conn, content []byte, msgMarshaller Marshaler, writeLock *sync.Mutex) {
 	closeMsg := &message.ResponseMessage{
 		MsgType: message.ResponseMessage_CLOSE,
 		Content: content,
@@ -457,9 +457,9 @@ func (server *EntryServer) sendCloseMessage(ws *websocket.Conn, content []byte, 
 	if closeData, err := msgMarshaller(closeMsg); err != nil {
 		log.Errorf("Marshal close message failed: %s", err.Error())
 	} else {
-		server.writeLock.Lock()
+		writeLock.Lock()
 		ws.WriteMessage(websocket.BinaryMessage, closeData)
-		server.writeLock.Unlock()
+		writeLock.Unlock()
 	}
 }
 
