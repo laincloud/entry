@@ -9,7 +9,7 @@ requirements = [
 setup(
     name="entryclient",
     author='EricPai <ericpai94@hotmail.com>',
-    version='2.2.0',
+    version='2.3.0',
     packages=find_packages(),
     include_package_data=True,
     install_requires=requirements,
