@@ -1,0 +1,31 @@
+sudo: false
+
+language: python
+
+python:
+  - "2.7"
+
+services:
+  - docker
+
+install: "pip install lain-cli twine wheel"
+
+script:
+  - lain config save-global private_docker_registry 'registry.lain.local'
+  - lain build
+  - lain test
+
+after_success:
+  - LAIN_APPNAME=entry
+  - LAIN_IMAGE_VERSION="$(git show -s --format=%ct $TRAVIS_COMMIT)-$TRAVIS_COMMIT"
+  - if [ "$TRAVIS_TAG" != "" ]; then
+    docker login -u="$DOCKER_USER" -p="$DOCKER_PASS";
+    docker tag $LAIN_APPNAME:release-$LAIN_IMAGE_VERSION laincloud/$LAIN_APPNAME:release-$LAIN_IMAGE_VERSION;
+    docker tag $LAIN_APPNAME:meta-$LAIN_IMAGE_VERSION laincloud/$LAIN_APPNAME:meta-$LAIN_IMAGE_VERSION;
+    docker push laincloud/$LAIN_APPNAME:release-$LAIN_IMAGE_VERSION;
+    docker push laincloud/$LAIN_APPNAME:meta-$LAIN_IMAGE_VERSION;
+    rm -rf dist/;
+    python setup.py sdist;
+    python setup.py bdist_wheel;
+    twine upload dist/*;
+    fi
