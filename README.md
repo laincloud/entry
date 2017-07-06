@@ -1,5 +1,8 @@
 # Entry
 
+[![Build Status](https://travis-ci.org/laincloud/entry.svg?branch=master)](https://travis-ci.org/laincloud/entry)
+[![MIT license](https://img.shields.io/github/license/mashape/apistatus.svg)](https://opensource.org/licenses/MIT)
+
 ## Documentation
 
 相关文档见 [Entry 应用文档](https://laincloud.gitbooks.io/white-paper/content/outofbox/entry.html)
