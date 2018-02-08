@@ -3,3 +3,5 @@ entry.iml
 *.pyc
 test.py
 test_client.py
+vendor/
+prod.json

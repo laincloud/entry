@@ -1,0 +1,16 @@
+digraph G {
+  rankdir=LR;
+
+  lainAdmin [label="Admin"];
+  bastion [label="Bastion"];
+  lainNode [label="LAIN Node"];
+  allContainers [label="All containers"];
+  appOwner [label="App Owner"]
+  ordinaryContainers [label="Containers other than entry"]
+
+  lainAdmin -> bastion;
+  bastion -> lainNode [label="audit"];
+  lainNode -> allContainers [label="docker exec"];
+
+  appOwner -> ordinaryContainers [label="Authentication, authorize, proxy and audit by entry"];
+}

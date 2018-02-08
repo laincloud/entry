@@ -1,0 +1,10 @@
+{
+    "sso_url": "https://sso.laindomain",
+    "mysql": {
+        "username": "fake",
+        "password": "fake",
+        "host": "127.0.0.1",
+        "port": 3306,
+        "db_name": "entry"
+    }
+}

@@ -1,0 +1,23 @@
+[Session] {label: "charset=utf8mb4, can't be deleted"}
+*session_id
+session_type
+user {label: "index"}
+source_ip {label: "index"}
+app_name {label: "index"}
+proc_name
+instance_no
+container_id
+node_ip
+status
+ended_at
+created_at {label: "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP"}
+updated_at {label: "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"}
+
+[Command] {label: "charset=utf8mb4, can't be deleted or updated"}
+*command_id
++session_id {label: "index"}
+user {label: "index, redundant for security"}
+content
+created_at {label: "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP"}
+
+Command *--1 Session

@@ -1,23 +1,38 @@
 appname: entry
 
 build:
-    base: laincloud/centos-lain:20170103
+    base: golang:1.10
     prepare:
-        version: 201
+        version: 20180205
         script:
-            - mkdir -p $GOPATH/src/github.com/laincloud
+            # - sed -i 's|deb.debian.org|mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list
+            # - sed -i 's|security.debian.org|mirrors.tuna.tsinghua.edu.cn/debian-security|g' /etc/apt/sources.list
+            # - apt-get -y update && apt-get -y install golang-glide
+            - mkdir -p $GOPATH/src/github.com/laincloud/entry
+            - cp -rf . $GOPATH/src/github.com/laincloud/entry
+            # - cd $GOPATH/src/github.com/laincloud/entry && glide install
+            - go install github.com/laincloud/entry/server/gen/cmd/entry-server
     script:
-        - ln -s /lain/app $GOPATH/src/github.com/laincloud/entry
-        - go build -o entry-server $GOPATH/src/github.com/laincloud/entry/main.go
+        - cp -rf . $GOPATH/src/github.com/laincloud/entry
+        - go install github.com/laincloud/entry/server/gen/cmd/entry-server
 
 test:
     script:
         - go test github.com/laincloud/entry/server
 
+release:
+    dest_base: laincloud/debian:stretch
+    copy:
+        - src: $GOPATH/bin/entry-server
+          dest: /lain/app/entry-server
+
 web:
-    cmd: ./entry-server
+    cmd: /lain/app/entry-server --config=/lain/app/prod.json --host=0.0.0.0 --port=80
     memory: 256m
     env:
         - LAINLET_PORT=9001
         - SWARM_PORT=2376
     port: 80
+    secret_files:
+        - /lain/app/prod.json
+    healthcheck: /ping

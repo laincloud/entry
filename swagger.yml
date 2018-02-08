@@ -1,0 +1,208 @@
+swagger: "2.0"
+
+info:
+  title: Entry
+  version: 3.0.0
+
+schemes:
+  - http
+
+consumes:
+  - application/vnd.laincloud.entry.v1+json
+
+produces:
+  - application/vnd.laincloud.entry.v1+json
+
+paths:
+  /attach:
+    get:
+      tags:
+        - container
+      operationId: attachContainer
+      responses:
+        200:
+          description: placeholder
+
+  /enter:
+    get:
+      tags:
+        - container
+      operationId: enterContainer
+      responses:
+        200:
+          description: placeholder
+
+  /commands:
+    get:
+      tags:
+        - commands
+      operationId: listCommands
+      parameters:
+        - name: query
+          description: query pattern(MySQL LIKE pattern match)
+          in: query
+          type: string
+          default: "%"
+        - name: since
+          description: "Unix timestamp(unit: second)"
+          in: query
+          type: integer
+          format: int64
+          default: 0
+        - name: limit
+          in: query
+          type: integer
+          format: int64
+          default: 20
+        - name: offset
+          in: query
+          type: integer
+          format: int64
+          default: 0
+      responses:
+        200:
+          description: list the commands
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/command"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/error"
+
+  /ping:
+    get:
+      tags:
+        - ping
+      operationId: ping
+      responses:
+        200:
+          description: this server is healthy
+          schema:
+            type: string
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/error"
+
+  /sessions:
+    get:
+      tags:
+        - sessions
+      operationId: listSessions
+      parameters:
+        - name: since
+          description: "Unix timestamp(unit: second)"
+          in: query
+          type: integer
+          format: int64
+          default: 0
+        - name: limit
+          in: query
+          type: integer
+          format: int64
+          default: 20
+        - name: offset
+          in: query
+          type: integer
+          format: int64
+          default: 0
+      responses:
+        200:
+          description: list the sessions
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/session"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/error"
+
+  /sessions/{session_id}:
+    parameters:
+      - name: session_id
+        type: integer
+        format: int64
+        in: path
+        required: true
+    get:
+      tags:
+        - sessions
+      operationId: getSession
+      responses:
+        200:
+          description: list the sessions
+          schema:
+            $ref: "#/definitions/session"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/error"
+
+definitions:
+  command:
+    type: object
+    properties:
+      command_id:
+        type: integer
+        format: int64
+        readOnly: true
+      session_id:
+        type: integer
+        format: int64
+        readOnly: true
+      content:
+        type: string
+      user:
+        type: string
+      created_at:
+        type: integer
+        format: int64
+        description: "Unix timestamp(unit: second)"
+
+  error:
+    type: object
+    required:
+      - message
+    properties:
+      code:
+        type: integer
+        format: int64
+      message:
+        type: string
+
+  session:
+    type: object
+    properties:
+      session_id:
+        type: integer
+        format: int64
+        readOnly: true
+      session_type:
+        type: string
+      user:
+        type: string
+      source_ip:
+        type: string
+      app_name:
+        type: string
+      proc_name:
+        type: string
+      instance_no:
+        type: string
+      container_id:
+        type: string
+      node_ip:
+        type: string
+      status:
+        type: string
+      created_at:
+        type: integer
+        format: int64
+        description: "Unix timestamp(unit: second)"
+      ended_at:
+        type: integer
+        format: int64
+        description: "Unix timestamp(unit: second)"

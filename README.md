@@ -10,20 +10,13 @@
 ## Licensing
 Entry is released under [MIT](https://github.com/laincloud/entry/blob/master/LICENSE) license.
 
-## 打包上传到 PyPI
+## 审计
 
-### 依赖
+## 开发
 
-```
-pip install twine  # 上传工具
-pip install wheel  # 打包工具
-```
-
-### 打包上传
+### 由 `swagger.yml` 生成代码
 
 ```
-rm -rf dist/  # 清空以前的构建
-python setup.py sdist  # 打包源代码
-python setup.py bdist_wheel  # 构建 wheel
-twine upload dist/*  # 上传
+go get -u github.com/go-swagger/go-swagger/cmd/swagger  # 安装 swagger
+swagger generate server -f ./swagger.yml -t server/gen  # 生成代码
 ```
