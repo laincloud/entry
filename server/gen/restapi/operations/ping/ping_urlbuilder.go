@@ -35,7 +35,7 @@ func (o *PingURL) SetBasePath(bp string) {
 func (o *PingURL) Build() (*url.URL, error) {
 	var result url.URL
 
-	var _path = "/ping"
+	var _path = "/api/ping"
 
 	_basePath := o._basePath
 	result.Path = golangswaggerpaths.Join(_basePath, _path)

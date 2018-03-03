@@ -32,17 +32,12 @@ paths:
         200:
           description: placeholder
 
-  /commands:
+  /api/commands:
     get:
       tags:
         - commands
       operationId: listCommands
       parameters:
-        - name: query
-          description: query pattern(MySQL LIKE pattern match)
-          in: query
-          type: string
-          default: "%"
         - name: since
           description: "Unix timestamp(unit: second)"
           in: query
@@ -59,6 +54,21 @@ paths:
           type: integer
           format: int64
           default: 0
+        - name: user
+          in: query
+          type: string
+        - name: app_name
+          in: query
+          type: string
+        - name: content
+          description: query pattern(MySQL LIKE pattern match)
+          in: query
+          type: string
+          default: "%"
+        - name: session_id
+          in: query
+          type: integer
+          format: int64
       responses:
         200:
           description: list the commands
@@ -71,7 +81,7 @@ paths:
           schema:
             $ref: "#/definitions/error"
 
-  /ping:
+  /api/ping:
     get:
       tags:
         - ping
@@ -86,7 +96,7 @@ paths:
           schema:
             $ref: "#/definitions/error"
 
-  /sessions:
+  /api/sessions:
     get:
       tags:
         - sessions
@@ -108,6 +118,12 @@ paths:
           type: integer
           format: int64
           default: 0
+        - name: user
+          in: query
+          type: string
+        - name: app_name
+          in: query
+          type: string
       responses:
         200:
           description: list the sessions
@@ -120,7 +136,7 @@ paths:
           schema:
             $ref: "#/definitions/error"
 
-  /sessions/{session_id}:
+  /api/sessions/{session_id}:
     parameters:
       - name: session_id
         type: integer
@@ -149,14 +165,20 @@ definitions:
         type: integer
         format: int64
         readOnly: true
+      user:
+        type: string
+      app_name:
+        type: string
+      proc_name:
+        type: string
+      instance_no:
+        type: string
+      content:
+        type: string
       session_id:
         type: integer
         format: int64
         readOnly: true
-      content:
-        type: string
-      user:
-        type: string
       created_at:
         type: integer
         format: int64

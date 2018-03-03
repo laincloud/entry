@@ -301,22 +301,22 @@ func (o *EntryAPI) initHandlerCache() {
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/sessions/{session_id}"] = sessions.NewGetSession(o.context, o.SessionsGetSessionHandler)
+	o.handlers["GET"]["/api/sessions/{session_id}"] = sessions.NewGetSession(o.context, o.SessionsGetSessionHandler)
 
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/commands"] = commands.NewListCommands(o.context, o.CommandsListCommandsHandler)
+	o.handlers["GET"]["/api/commands"] = commands.NewListCommands(o.context, o.CommandsListCommandsHandler)
 
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/sessions"] = sessions.NewListSessions(o.context, o.SessionsListSessionsHandler)
+	o.handlers["GET"]["/api/sessions"] = sessions.NewListSessions(o.context, o.SessionsListSessionsHandler)
 
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/ping"] = ping.NewPing(o.context, o.PingPingHandler)
+	o.handlers["GET"]["/api/ping"] = ping.NewPing(o.context, o.PingPingHandler)
 
 }
 

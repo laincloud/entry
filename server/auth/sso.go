@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/mijia/sweb/log"
-
 	"github.com/laincloud/entry/server/global"
 )
 
@@ -34,7 +32,6 @@ func GetSSOUser(accessToken string, g *global.Global) (*SSOUser, error) {
 	if err = json.NewDecoder(resp.Body).Decode(&user); err != nil {
 		return nil, err
 	}
-	log.Infof("url: %v, accessToken: %s, user: %v.", url, accessToken, user)
 
 	return &user, nil
 }

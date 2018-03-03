@@ -33,33 +33,13 @@ func init() {
     "version": "3.0.0"
   },
   "paths": {
-    "/attach": {
-      "get": {
-        "tags": [
-          "container"
-        ],
-        "operationId": "attachContainer",
-        "responses": {
-          "200": {
-            "description": "placeholder"
-          }
-        }
-      }
-    },
-    "/commands": {
+    "/api/commands": {
       "get": {
         "tags": [
           "commands"
         ],
         "operationId": "listCommands",
         "parameters": [
-          {
-            "type": "string",
-            "default": "%",
-            "description": "query pattern(MySQL LIKE pattern match)",
-            "name": "query",
-            "in": "query"
-          },
           {
             "type": "integer",
             "format": "int64",
@@ -80,6 +60,29 @@ func init() {
             "format": "int64",
             "default": 0,
             "name": "offset",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "name": "user",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "name": "app_name",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "default": "%",
+            "description": "query pattern(MySQL LIKE pattern match)",
+            "name": "content",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "name": "session_id",
             "in": "query"
           }
         ],
@@ -102,20 +105,7 @@ func init() {
         }
       }
     },
-    "/enter": {
-      "get": {
-        "tags": [
-          "container"
-        ],
-        "operationId": "enterContainer",
-        "responses": {
-          "200": {
-            "description": "placeholder"
-          }
-        }
-      }
-    },
-    "/ping": {
+    "/api/ping": {
       "get": {
         "tags": [
           "ping"
@@ -137,7 +127,7 @@ func init() {
         }
       }
     },
-    "/sessions": {
+    "/api/sessions": {
       "get": {
         "tags": [
           "sessions"
@@ -165,6 +155,16 @@ func init() {
             "default": 0,
             "name": "offset",
             "in": "query"
+          },
+          {
+            "type": "string",
+            "name": "user",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "name": "app_name",
+            "in": "query"
           }
         ],
         "responses": {
@@ -186,7 +186,7 @@ func init() {
         }
       }
     },
-    "/sessions/{session_id}": {
+    "/api/sessions/{session_id}": {
       "get": {
         "tags": [
           "sessions"
@@ -216,12 +216,41 @@ func init() {
           "required": true
         }
       ]
+    },
+    "/attach": {
+      "get": {
+        "tags": [
+          "container"
+        ],
+        "operationId": "attachContainer",
+        "responses": {
+          "200": {
+            "description": "placeholder"
+          }
+        }
+      }
+    },
+    "/enter": {
+      "get": {
+        "tags": [
+          "container"
+        ],
+        "operationId": "enterContainer",
+        "responses": {
+          "200": {
+            "description": "placeholder"
+          }
+        }
+      }
     }
   },
   "definitions": {
     "command": {
       "type": "object",
       "properties": {
+        "app_name": {
+          "type": "string"
+        },
         "command_id": {
           "type": "integer",
           "format": "int64",
@@ -234,6 +263,12 @@ func init() {
           "description": "Unix timestamp(unit: second)",
           "type": "integer",
           "format": "int64"
+        },
+        "instance_no": {
+          "type": "string"
+        },
+        "proc_name": {
+          "type": "string"
         },
         "session_id": {
           "type": "integer",
@@ -325,33 +360,13 @@ func init() {
     "version": "3.0.0"
   },
   "paths": {
-    "/attach": {
-      "get": {
-        "tags": [
-          "container"
-        ],
-        "operationId": "attachContainer",
-        "responses": {
-          "200": {
-            "description": "placeholder"
-          }
-        }
-      }
-    },
-    "/commands": {
+    "/api/commands": {
       "get": {
         "tags": [
           "commands"
         ],
         "operationId": "listCommands",
         "parameters": [
-          {
-            "type": "string",
-            "default": "%",
-            "description": "query pattern(MySQL LIKE pattern match)",
-            "name": "query",
-            "in": "query"
-          },
           {
             "type": "integer",
             "format": "int64",
@@ -372,6 +387,29 @@ func init() {
             "format": "int64",
             "default": 0,
             "name": "offset",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "name": "user",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "name": "app_name",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "default": "%",
+            "description": "query pattern(MySQL LIKE pattern match)",
+            "name": "content",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "name": "session_id",
             "in": "query"
           }
         ],
@@ -394,20 +432,7 @@ func init() {
         }
       }
     },
-    "/enter": {
-      "get": {
-        "tags": [
-          "container"
-        ],
-        "operationId": "enterContainer",
-        "responses": {
-          "200": {
-            "description": "placeholder"
-          }
-        }
-      }
-    },
-    "/ping": {
+    "/api/ping": {
       "get": {
         "tags": [
           "ping"
@@ -429,7 +454,7 @@ func init() {
         }
       }
     },
-    "/sessions": {
+    "/api/sessions": {
       "get": {
         "tags": [
           "sessions"
@@ -457,6 +482,16 @@ func init() {
             "default": 0,
             "name": "offset",
             "in": "query"
+          },
+          {
+            "type": "string",
+            "name": "user",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "name": "app_name",
+            "in": "query"
           }
         ],
         "responses": {
@@ -478,7 +513,7 @@ func init() {
         }
       }
     },
-    "/sessions/{session_id}": {
+    "/api/sessions/{session_id}": {
       "get": {
         "tags": [
           "sessions"
@@ -508,12 +543,41 @@ func init() {
           "required": true
         }
       ]
+    },
+    "/attach": {
+      "get": {
+        "tags": [
+          "container"
+        ],
+        "operationId": "attachContainer",
+        "responses": {
+          "200": {
+            "description": "placeholder"
+          }
+        }
+      }
+    },
+    "/enter": {
+      "get": {
+        "tags": [
+          "container"
+        ],
+        "operationId": "enterContainer",
+        "responses": {
+          "200": {
+            "description": "placeholder"
+          }
+        }
+      }
     }
   },
   "definitions": {
     "command": {
       "type": "object",
       "properties": {
+        "app_name": {
+          "type": "string"
+        },
         "command_id": {
           "type": "integer",
           "format": "int64",
@@ -526,6 +590,12 @@ func init() {
           "description": "Unix timestamp(unit: second)",
           "type": "integer",
           "format": "int64"
+        },
+        "instance_no": {
+          "type": "string"
+        },
+        "proc_name": {
+          "type": "string"
         },
         "session_id": {
           "type": "integer",

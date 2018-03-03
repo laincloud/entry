@@ -16,6 +16,9 @@ import (
 // swagger:model command
 type Command struct {
 
+	// app name
+	AppName string `json:"app_name,omitempty"`
+
 	// command id
 	// Read Only: true
 	CommandID int64 `json:"command_id,omitempty"`
@@ -25,6 +28,12 @@ type Command struct {
 
 	// Unix timestamp(unit: second)
 	CreatedAt int64 `json:"created_at,omitempty"`
+
+	// instance no
+	InstanceNo string `json:"instance_no,omitempty"`
+
+	// proc name
+	ProcName string `json:"proc_name,omitempty"`
 
 	// session id
 	// Read Only: true

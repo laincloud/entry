@@ -15,9 +15,11 @@ import (
 
 // ListSessionsURL generates an URL for the list sessions operation
 type ListSessionsURL struct {
-	Limit  *int64
-	Offset *int64
-	Since  *int64
+	AppName *string
+	Limit   *int64
+	Offset  *int64
+	Since   *int64
+	User    *string
 
 	_basePath string
 	// avoid unkeyed usage
@@ -43,12 +45,20 @@ func (o *ListSessionsURL) SetBasePath(bp string) {
 func (o *ListSessionsURL) Build() (*url.URL, error) {
 	var result url.URL
 
-	var _path = "/sessions"
+	var _path = "/api/sessions"
 
 	_basePath := o._basePath
 	result.Path = golangswaggerpaths.Join(_basePath, _path)
 
 	qs := make(url.Values)
+
+	var appName string
+	if o.AppName != nil {
+		appName = *o.AppName
+	}
+	if appName != "" {
+		qs.Set("app_name", appName)
+	}
 
 	var limit string
 	if o.Limit != nil {
@@ -72,6 +82,14 @@ func (o *ListSessionsURL) Build() (*url.URL, error) {
 	}
 	if since != "" {
 		qs.Set("since", since)
+	}
+
+	var user string
+	if o.User != nil {
+		user = *o.User
+	}
+	if user != "" {
+		qs.Set("user", user)
 	}
 
 	result.RawQuery = qs.Encode()

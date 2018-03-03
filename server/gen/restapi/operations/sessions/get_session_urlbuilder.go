@@ -42,7 +42,7 @@ func (o *GetSessionURL) SetBasePath(bp string) {
 func (o *GetSessionURL) Build() (*url.URL, error) {
 	var result url.URL
 
-	var _path = "/sessions/{session_id}"
+	var _path = "/api/sessions/{session_id}"
 
 	sessionID := swag.FormatInt64(o.SessionID)
 	if sessionID != "" {

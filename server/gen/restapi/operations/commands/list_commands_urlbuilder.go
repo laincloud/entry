@@ -15,10 +15,13 @@ import (
 
 // ListCommandsURL generates an URL for the list commands operation
 type ListCommandsURL struct {
-	Limit  *int64
-	Offset *int64
-	Query  *string
-	Since  *int64
+	AppName   *string
+	Content   *string
+	Limit     *int64
+	Offset    *int64
+	SessionID *int64
+	Since     *int64
+	User      *string
 
 	_basePath string
 	// avoid unkeyed usage
@@ -44,12 +47,28 @@ func (o *ListCommandsURL) SetBasePath(bp string) {
 func (o *ListCommandsURL) Build() (*url.URL, error) {
 	var result url.URL
 
-	var _path = "/commands"
+	var _path = "/api/commands"
 
 	_basePath := o._basePath
 	result.Path = golangswaggerpaths.Join(_basePath, _path)
 
 	qs := make(url.Values)
+
+	var appName string
+	if o.AppName != nil {
+		appName = *o.AppName
+	}
+	if appName != "" {
+		qs.Set("app_name", appName)
+	}
+
+	var content string
+	if o.Content != nil {
+		content = *o.Content
+	}
+	if content != "" {
+		qs.Set("content", content)
+	}
 
 	var limit string
 	if o.Limit != nil {
@@ -67,12 +86,12 @@ func (o *ListCommandsURL) Build() (*url.URL, error) {
 		qs.Set("offset", offset)
 	}
 
-	var query string
-	if o.Query != nil {
-		query = *o.Query
+	var sessionID string
+	if o.SessionID != nil {
+		sessionID = swag.FormatInt64(*o.SessionID)
 	}
-	if query != "" {
-		qs.Set("query", query)
+	if sessionID != "" {
+		qs.Set("session_id", sessionID)
 	}
 
 	var since string
@@ -81,6 +100,14 @@ func (o *ListCommandsURL) Build() (*url.URL, error) {
 	}
 	if since != "" {
 		qs.Set("since", since)
+	}
+
+	var user string
+	if o.User != nil {
+		user = *o.User
+	}
+	if user != "" {
+		qs.Set("user", user)
 	}
 
 	result.RawQuery = qs.Encode()

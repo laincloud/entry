@@ -36,8 +36,8 @@ type Session struct {
 	ContainerID string
 	NodeIP      string
 	Status      string
-	EndedAt     time.Time
 	CreatedAt   time.Time `sql:"not null;DEFAULT:current_timestamp"`
+	EndedAt     time.Time
 	UpdatedAt   time.Time `sql:"not null;DEFAULT:current_timestamp"`
 }
 

@@ -29,7 +29,7 @@ func NewPing(ctx *middleware.Context, handler PingHandler) *Ping {
 	return &Ping{Context: ctx, Handler: handler}
 }
 
-/*Ping swagger:route GET /ping ping ping
+/*Ping swagger:route GET /api/ping ping ping
 
 Ping ping API
 

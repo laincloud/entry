@@ -29,7 +29,7 @@ func NewListSessions(ctx *middleware.Context, handler ListSessionsHandler) *List
 	return &ListSessions{Context: ctx, Handler: handler}
 }
 
-/*ListSessions swagger:route GET /sessions sessions listSessions
+/*ListSessions swagger:route GET /api/sessions sessions listSessions
 
 ListSessions list sessions API
 

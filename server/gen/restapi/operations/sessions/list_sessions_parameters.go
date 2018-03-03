@@ -48,6 +48,10 @@ type ListSessionsParams struct {
 
 	/*
 	  In: query
+	*/
+	AppName *string
+	/*
+	  In: query
 	  Default: 20
 	*/
 	Limit *int64
@@ -61,6 +65,10 @@ type ListSessionsParams struct {
 	  Default: 0
 	*/
 	Since *int64
+	/*
+	  In: query
+	*/
+	User *string
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
@@ -73,6 +81,11 @@ func (o *ListSessionsParams) BindRequest(r *http.Request, route *middleware.Matc
 	o.HTTPRequest = r
 
 	qs := runtime.Values(r.URL.Query())
+
+	qAppName, qhkAppName, _ := qs.GetOK("app_name")
+	if err := o.bindAppName(qAppName, qhkAppName, route.Formats); err != nil {
+		res = append(res, err)
+	}
 
 	qLimit, qhkLimit, _ := qs.GetOK("limit")
 	if err := o.bindLimit(qLimit, qhkLimit, route.Formats); err != nil {
@@ -89,9 +102,31 @@ func (o *ListSessionsParams) BindRequest(r *http.Request, route *middleware.Matc
 		res = append(res, err)
 	}
 
+	qUser, qhkUser, _ := qs.GetOK("user")
+	if err := o.bindUser(qUser, qhkUser, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (o *ListSessionsParams) bindAppName(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+
+	o.AppName = &raw
+
 	return nil
 }
 
@@ -157,6 +192,23 @@ func (o *ListSessionsParams) bindSince(rawData []string, hasKey bool, formats st
 		return errors.InvalidType("since", "query", "int64", raw)
 	}
 	o.Since = &value
+
+	return nil
+}
+
+func (o *ListSessionsParams) bindUser(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+
+	o.User = &raw
 
 	return nil
 }

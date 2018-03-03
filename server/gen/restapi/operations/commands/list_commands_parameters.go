@@ -23,18 +23,19 @@ func NewListCommandsParams() ListCommandsParams {
 	var (
 		// initialize parameters with default values
 
-		limitDefault  = int64(20)
-		offsetDefault = int64(0)
-		queryDefault  = string("%")
-		sinceDefault  = int64(0)
+		contentDefault = string("%")
+		limitDefault   = int64(20)
+		offsetDefault  = int64(0)
+
+		sinceDefault = int64(0)
 	)
 
 	return ListCommandsParams{
+		Content: &contentDefault,
+
 		Limit: &limitDefault,
 
 		Offset: &offsetDefault,
-
-		Query: &queryDefault,
 
 		Since: &sinceDefault,
 	}
@@ -51,6 +52,15 @@ type ListCommandsParams struct {
 
 	/*
 	  In: query
+	*/
+	AppName *string
+	/*query pattern(MySQL LIKE pattern match)
+	  In: query
+	  Default: "%"
+	*/
+	Content *string
+	/*
+	  In: query
 	  Default: 20
 	*/
 	Limit *int64
@@ -59,16 +69,19 @@ type ListCommandsParams struct {
 	  Default: 0
 	*/
 	Offset *int64
-	/*query pattern(MySQL LIKE pattern match)
+	/*
 	  In: query
-	  Default: "%"
 	*/
-	Query *string
+	SessionID *int64
 	/*Unix timestamp(unit: second)
 	  In: query
 	  Default: 0
 	*/
 	Since *int64
+	/*
+	  In: query
+	*/
+	User *string
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
@@ -82,6 +95,16 @@ func (o *ListCommandsParams) BindRequest(r *http.Request, route *middleware.Matc
 
 	qs := runtime.Values(r.URL.Query())
 
+	qAppName, qhkAppName, _ := qs.GetOK("app_name")
+	if err := o.bindAppName(qAppName, qhkAppName, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
+	qContent, qhkContent, _ := qs.GetOK("content")
+	if err := o.bindContent(qContent, qhkContent, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
 	qLimit, qhkLimit, _ := qs.GetOK("limit")
 	if err := o.bindLimit(qLimit, qhkLimit, route.Formats); err != nil {
 		res = append(res, err)
@@ -92,8 +115,8 @@ func (o *ListCommandsParams) BindRequest(r *http.Request, route *middleware.Matc
 		res = append(res, err)
 	}
 
-	qQuery, qhkQuery, _ := qs.GetOK("query")
-	if err := o.bindQuery(qQuery, qhkQuery, route.Formats); err != nil {
+	qSessionID, qhkSessionID, _ := qs.GetOK("session_id")
+	if err := o.bindSessionID(qSessionID, qhkSessionID, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -102,9 +125,49 @@ func (o *ListCommandsParams) BindRequest(r *http.Request, route *middleware.Matc
 		res = append(res, err)
 	}
 
+	qUser, qhkUser, _ := qs.GetOK("user")
+	if err := o.bindUser(qUser, qhkUser, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (o *ListCommandsParams) bindAppName(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+
+	o.AppName = &raw
+
+	return nil
+}
+
+func (o *ListCommandsParams) bindContent(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+	if raw == "" { // empty values pass all other validations
+		// Default values have been previously initialized by NewListCommandsParams()
+		return nil
+	}
+
+	o.Content = &raw
+
 	return nil
 }
 
@@ -152,7 +215,7 @@ func (o *ListCommandsParams) bindOffset(rawData []string, hasKey bool, formats s
 	return nil
 }
 
-func (o *ListCommandsParams) bindQuery(rawData []string, hasKey bool, formats strfmt.Registry) error {
+func (o *ListCommandsParams) bindSessionID(rawData []string, hasKey bool, formats strfmt.Registry) error {
 	var raw string
 	if len(rawData) > 0 {
 		raw = rawData[len(rawData)-1]
@@ -161,11 +224,14 @@ func (o *ListCommandsParams) bindQuery(rawData []string, hasKey bool, formats st
 	// Required: false
 	// AllowEmptyValue: false
 	if raw == "" { // empty values pass all other validations
-		// Default values have been previously initialized by NewListCommandsParams()
 		return nil
 	}
 
-	o.Query = &raw
+	value, err := swag.ConvertInt64(raw)
+	if err != nil {
+		return errors.InvalidType("session_id", "query", "int64", raw)
+	}
+	o.SessionID = &value
 
 	return nil
 }
@@ -188,6 +254,23 @@ func (o *ListCommandsParams) bindSince(rawData []string, hasKey bool, formats st
 		return errors.InvalidType("since", "query", "int64", raw)
 	}
 	o.Since = &value
+
+	return nil
+}
+
+func (o *ListCommandsParams) bindUser(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+
+	o.User = &raw
 
 	return nil
 }

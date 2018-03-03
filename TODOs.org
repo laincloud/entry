@@ -1,13 +1,10 @@
 # TODOs
 
-* DONE 取消对 entry 容器的进入权限
-  CLOSED: [2018-02-26 Mon 18:42]
-* DONE 收集 stdin
-  CLOSED: [2018-03-02 Fri 12:36]
-* DONE 优雅地退出
-  CLOSED: [2018-02-27 Tue 14:29]
-* DONE node_ip
-  CLOSED: [2018-03-02 Fri 15:38]
-* TODO 前端
-* DONE created_at default
-  CLOSED: [2018-03-02 Fri 15:38]
+* TODO lain.yaml 里的前端编译
+* DONE 前端：sessions 的获取
+  CLOSED: [2018-03-05 Mon 20:58]
+* DONE 前端：commands 标签页
+  CLOSED: [2018-03-06 Tue 16:50]
+* TODO 前端：登录验证
+* TODO 后端：会话记录
+* TODO 前端：会话重放

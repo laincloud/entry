@@ -29,7 +29,7 @@ func NewListCommands(ctx *middleware.Context, handler ListCommandsHandler) *List
 	return &ListCommands{Context: ctx, Handler: handler}
 }
 
-/*ListCommands swagger:route GET /commands commands listCommands
+/*ListCommands swagger:route GET /api/commands commands listCommands
 
 ListCommands list commands API
 

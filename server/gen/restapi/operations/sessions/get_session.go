@@ -29,7 +29,7 @@ func NewGetSession(ctx *middleware.Context, handler GetSessionHandler) *GetSessi
 	return &GetSession{Context: ctx, Handler: handler}
 }
 
-/*GetSession swagger:route GET /sessions/{session_id} sessions getSession
+/*GetSession swagger:route GET /api/sessions/{session_id} sessions getSession
 
 GetSession get session API
 

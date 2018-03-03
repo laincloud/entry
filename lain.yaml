@@ -7,32 +7,51 @@ build:
         script:
             # - sed -i 's|deb.debian.org|mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list
             # - sed -i 's|security.debian.org|mirrors.tuna.tsinghua.edu.cn/debian-security|g' /etc/apt/sources.list
+            # - curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
+            # - echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
             # - apt-get -y update && apt-get -y install golang-glide
+            # - apt-get -y update && apt-get -y install yarn
             - mkdir -p $GOPATH/src/github.com/laincloud/entry
             - cp -rf . $GOPATH/src/github.com/laincloud/entry
             # - cd $GOPATH/src/github.com/laincloud/entry && glide install
             - go install github.com/laincloud/entry/server/gen/cmd/entry-server
+            - cd frontend/ && yarn install
     script:
         - cp -rf . $GOPATH/src/github.com/laincloud/entry
         - go install github.com/laincloud/entry/server/gen/cmd/entry-server
+        # - cd frontend/ && yarn build
 
 test:
     script:
         - go test github.com/laincloud/entry/server
 
 release:
-    dest_base: laincloud/debian:stretch
+    dest_base: laincloud/nginx:1.13
     copy:
         - src: $GOPATH/bin/entry-server
           dest: /lain/app/entry-server
+        - src: nginx.conf
+          dest: /etc/nginx/conf.d/default.conf
+        - src: frontend/build
+          dest: /usr/share/nginx/html
 
-web:
+web:  # backend
     cmd: /lain/app/entry-server --config=/lain/app/prod.json --host=0.0.0.0 --port=80
-    memory: 256m
+    port: 80
+    healthcheck: /api/ping
+    memory: 256M
     env:
         - LAINLET_PORT=9001
         - SWARM_PORT=2376
-    port: 80
     secret_files:
         - /lain/app/prod.json
+
+proc.frontend:
+    type: web
+    cmd: nginx -g "daemon off;"
+    port: 80
     healthcheck: /ping
+    mountpoint:
+        - /web
+    https_only: true
+    memory: 32M
