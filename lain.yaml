@@ -3,7 +3,7 @@ appname: entry
 build:
     base: golang:1.10
     prepare:
-        version: 20180205
+        version: 20180207
         script:
             # - sed -i 's|deb.debian.org|mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list
             # - sed -i 's|security.debian.org|mirrors.tuna.tsinghua.edu.cn/debian-security|g' /etc/apt/sources.list
@@ -15,11 +15,11 @@ build:
             - cp -rf . $GOPATH/src/github.com/laincloud/entry
             # - cd $GOPATH/src/github.com/laincloud/entry && glide install
             - go install github.com/laincloud/entry/server/gen/cmd/entry-server
-            - cd frontend/ && yarn install
+            # - cd $GOPATH/src/github.com/laincloud/entry/frontend/ && yarn install
     script:
         - cp -rf . $GOPATH/src/github.com/laincloud/entry
         - go install github.com/laincloud/entry/server/gen/cmd/entry-server
-        # - cd frontend/ && yarn build
+        # - cd $GOPATH/src/github.com/laincloud/entry/frontend/ && yarn build
 
 test:
     script:

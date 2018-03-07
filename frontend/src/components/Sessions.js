@@ -23,13 +23,19 @@ import {
 import MenuItem from 'material-ui/Menu/MenuItem';
 import TextField from 'material-ui/TextField';
 import Button from 'material-ui/Button';
-import axios from 'axios';
+import IconButton from 'material-ui/IconButton';
+import ReplayIcon from 'material-ui-icons/Replay';
+import SearchIcon from 'material-ui-icons/Search';
 import {
   format
 } from 'date-fns';
-import MyDateTimePicker from './MyDateTimePicker.jsx';
 
-const LIMIT = 100;
+import MyDateTimePicker from './MyDateTimePicker.jsx';
+import {
+  get
+} from '../MyAxios.jsx';
+
+const LIMIT = 200;
 const SESSION_TYPES = ['enter', 'attach'];
 
 const queryStyles = theme => ({
@@ -51,12 +57,6 @@ const queryStyles = theme => ({
     margin: theme.spacing.unit * 3,
   }
 })
-
-var myAxios = axios.create({
-  headers: {
-    'Accept': 'application/vnd.laincloud.entry.v1+json'
-  }
-});
 
 class Query extends React.Component {
   render() {
@@ -172,22 +172,10 @@ const columnData = [{
     label: 'Source IP'
   },
   {
-    id: 'appName',
+    id: 'app',
     numeric: false,
     disablePadding: true,
-    label: 'App Name'
-  },
-  {
-    id: 'procName',
-    numeric: false,
-    disablePadding: true,
-    label: 'Proc Name'
-  },
-  {
-    id: 'instanceNo',
-    numeric: true,
-    disablePadding: false,
-    label: 'Instance No'
+    label: 'AppName.ProcName.InstanceNo'
   },
   {
     id: 'nodeIP',
@@ -212,6 +200,12 @@ const columnData = [{
     numeric: false,
     disablePadding: true,
     label: 'Ended At'
+  },
+  {
+    id: 'inspect',
+    numeric: false,
+    disablePadding: true,
+    label: 'Inspect'
   }
 ];
 
@@ -310,6 +304,9 @@ EnhancedTableToolbar.propTypes = {
 EnhancedTableToolbar = withStyles(toolbarStyles)(EnhancedTableToolbar);
 
 const styles = theme => ({
+  button: {
+    margin: theme.spacing.unit,
+  },
   root: {
     width: '100%',
     marginTop: theme.spacing.unit * 3
@@ -376,6 +373,56 @@ class Sessions extends React.Component {
     });
   }
 
+  loadData = response => {
+    response.data.sort((a, b) => b.session_id < a.session_id ? -1 :
+      1);
+    let data = response.data.map(x => ({
+      sessionID: x.session_id,
+      sessionType: x.session_type,
+      user: x.user,
+      sourceIP: x.source_ip,
+      appName: x.app_name,
+      procName: x.proc_name,
+      instanceNo: x.instance_no,
+      nodeIP: x.node_ip,
+      status: x.status,
+      createdAt: new Date(x.created_at * 1000),
+      endedAt: new Date(x.ended_at * 1000)
+    }));
+
+    this.setState({
+      data: data,
+      queryStyle: {
+        marginTop: '0vh'
+      },
+      tableStyle: {
+        display: 'block'
+      },
+      page: 0
+    });
+  }
+
+  loadMoreData = response => {
+    response.data.sort((a, b) => b.session_id < a.session_id ? -1 :
+      1);
+    let newData = response.data.map(x => ({
+      sessionID: x.session_id,
+      sessionType: x.session_type,
+      user: x.user,
+      sourceIP: x.source_ip,
+      appName: x.app_name,
+      procName: x.proc_name,
+      instanceNo: x.instance_no,
+      nodeIP: x.node_ip,
+      status: x.status,
+      createdAt: new Date(x.created_at * 1000),
+      endedAt: new Date(x.ended_at * 1000)
+    }));
+    this.setState({
+      data: this.state.data.concat(newData)
+    });
+  }
+
   handleChangePage = (event, page) => {
     this.setState({
       page
@@ -395,38 +442,9 @@ class Sessions extends React.Component {
       if (this.state.appName) {
         params['app_name'] = this.state.appName;
       }
-      myAxios.get('/api/sessions', {
-          params: params
-        })
-        .then(response => {
-          console.info(response);
-          let data = this.state.data.slice();
-          response.data.sort((a, b) => b.session_id < a.session_id ? -1 :
-            1);
-          response.data.forEach(item => {
-            data.push({
-              sessionID: item.session_id,
-              sessionType: item.session_type,
-              user: item.user,
-              sourceIP: item.source_ip,
-              appName: item.app_name,
-              procName: item.proc_name,
-              instanceNo: item.instance_no,
-              nodeIP: item.node_ip,
-              status: item.status,
-              createdAt: format(new Date(item.created_at * 1000),
-                'YYYY-MM-DD HH:mm:ss'),
-              endedAt: format(new Date(item.ended_at * 1000),
-                'YYYY-MM-DD HH:mm:ss')
-            });
-          });
-          this.setState({
-            data: data
-          });
-        })
-        .catch(err => {
-          console.error(err);
-        });
+      get('/api/sessions', this.loadMoreData, {
+        params: params
+      });
     }
   }
 
@@ -437,17 +455,6 @@ class Sessions extends React.Component {
   }
 
   handleQuery = () => {
-    this.setState({
-      queryStyle: {
-        marginTop: '0vh'
-      },
-      tableStyle: {
-        display: 'block'
-      },
-      page: 0
-    });
-
-    console.info(this.state);
     let params = {
       limit: LIMIT,
       offset: 0,
@@ -462,44 +469,15 @@ class Sessions extends React.Component {
       params['app_name'] = this.state.appName;
     }
 
-    myAxios.get('/api/sessions', {
-        params: params
-      })
-      .then(response => {
-        console.info(response);
-        let data = [];
-        response.data.sort((a, b) => b.session_id < a.session_id ? -1 :
-          1);
-        response.data.forEach(item => {
-          data.push({
-            sessionID: item.session_id,
-            sessionType: item.session_type,
-            user: item.user,
-            sourceIP: item.source_ip,
-            appName: item.app_name,
-            procName: item.proc_name,
-            instanceNo: item.instance_no,
-            nodeIP: item.node_ip,
-            status: item.status,
-            createdAt: format(new Date(item.created_at * 1000),
-              'YYYY-MM-DD HH:mm:ss'),
-            endedAt: format(new Date(item.ended_at * 1000),
-              'YYYY-MM-DD HH:mm:ss')
-          });
-        });
-
-        this.setState({
-          data: data
-        });
-      })
-      .catch(err => {
-        console.error(err);
-      });
+    get('/api/sessions', this.loadData, {
+      params: params
+    });
   }
 
   render() {
     const {
-      classes
+      classes,
+      onSearchCommands
     } = this.props;
     const {
       sessionType,
@@ -558,13 +536,27 @@ class Sessions extends React.Component {
                         <TableCell padding="none">{n.sessionType}</TableCell>
                         <TableCell padding="none">{n.user}</TableCell>
                         <TableCell padding="none">{n.sourceIP}</TableCell>
-                        <TableCell padding="none">{n.appName}</TableCell>
-                        <TableCell padding="none">{n.procName}</TableCell>
-                        <TableCell numeric>{n.instanceNo}</TableCell>
+                        <TableCell padding="none">{n.appName}.{n.procName}.{n.instanceNo}</TableCell>
                         <TableCell padding="none">{n.nodeIP}</TableCell>
                         <TableCell padding="none">{n.status}</TableCell>
-                        <TableCell padding="none">{n.createdAt}</TableCell>
-                        <TableCell padding="none">{n.endedAt}</TableCell>
+                        <TableCell padding="none">{format(n.createdAt, 'YYYY-MM-DD HH:mm:ss')}</TableCell>
+                        <TableCell padding="none">{format(n.endedAt, 'YYYY-MM-DD HH:mm:ss')}</TableCell>
+                        <TableCell padding="none">
+                          <Tooltip title="Replay">
+                            <IconButton className={classes.button} aria-label="Replay">
+                              <ReplayIcon />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Search Commands">
+                            <IconButton
+                              className={classes.button}
+                              aria-label="Search"
+                              onClick={() => onSearchCommands(n.sessionID.toString(), n.createdAt)}
+                            >
+                              <SearchIcon />
+                            </IconButton>
+                          </Tooltip>
+                        </TableCell>
                       </TableRow>
                     );
                   })}
@@ -581,6 +573,7 @@ class Sessions extends React.Component {
                       colSpan={12}
                       count={data.length}
                       rowsPerPage={rowsPerPage}
+                      rowsPerPageOptions={[5, 10, 25, 50, 100]}
                       page={page}
                       backIconButtonProps={{
                         'aria-label': 'Previous Page'
@@ -603,7 +596,8 @@ class Sessions extends React.Component {
 }
 
 Sessions.propTypes = {
-  classes: PropTypes.object.isRequired
+  classes: PropTypes.object.isRequired,
+  onSearchCommands: PropTypes.func.isRequired
 };
 
 export default withStyles(styles)(Sessions);

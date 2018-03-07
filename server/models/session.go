@@ -11,7 +11,6 @@ import (
 	swaggermodels "github.com/laincloud/entry/server/gen/models"
 	"github.com/mijia/sweb/log"
 
-	"github.com/laincloud/entry/server/auth"
 	"github.com/laincloud/entry/server/global"
 	"github.com/laincloud/entry/server/util"
 )
@@ -68,12 +67,12 @@ func NewSession(sessionType string, conn *websocket.Conn, r *http.Request, g *gl
 
 	if appName == entryAppName {
 		log.Errorf("appName == %s is not allowed.", entryAppName)
-		return nil, auth.ErrAuthFailed
+		return nil, util.ErrAuthFailed
 	}
 
 	log.Infof("A user wants to enter %s[%s-%s]", appName, procName, instanceNo)
 	writeLock := &sync.Mutex{}
-	ssoUser, err := auth.Auth(accessToken, appName, g)
+	ssoUser, err := util.AuthContainer(accessToken, appName, g)
 	if err != nil {
 		errMsg := fmt.Sprintf(util.ErrMsgTemplate, "Authorization failed.")
 		log.Errorf("Authorization failed: %s", err.Error())

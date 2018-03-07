@@ -17,13 +17,14 @@ import (
 	"github.com/go-openapi/swag"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
-	lainlet "github.com/laincloud/lainlet/client"
 	"github.com/mijia/sweb/log"
 	graceful "github.com/tylerb/graceful"
 
 	"github.com/laincloud/entry/server/config"
 	"github.com/laincloud/entry/server/gen/restapi/operations"
+	"github.com/laincloud/entry/server/gen/restapi/operations/auth"
 	"github.com/laincloud/entry/server/gen/restapi/operations/commands"
+	swaggerconfig "github.com/laincloud/entry/server/gen/restapi/operations/config"
 	"github.com/laincloud/entry/server/gen/restapi/operations/container"
 	"github.com/laincloud/entry/server/gen/restapi/operations/ping"
 	"github.com/laincloud/entry/server/gen/restapi/operations/sessions"
@@ -75,16 +76,7 @@ func configureAPI(api *operations.EntryAPI) http.Handler {
 			break
 		}
 	}
-	g := &global.Global{
-		DB:           db,
-		DockerClient: dockerClient,
-		HTTPClient: &http.Client{
-			Timeout: 10 * time.Second,
-		},
-		LAINDomain:    os.Getenv("LAIN_DOMAIN"),
-		LAINLETClient: lainlet.New(net.JoinHostPort("lainlet.lain", os.Getenv("LAINLET_PORT"))),
-		SSOURL:        c.SSOURL,
-	}
+	g := global.NewGlobal(c, db, dockerClient)
 	ctx, cancel := context.WithCancel(context.Background())
 
 	// configure the api here
@@ -109,14 +101,23 @@ func configureAPI(api *operations.EntryAPI) http.Handler {
 	})
 
 	api.PingPingHandler = ping.PingHandlerFunc(handler.Ping)
-	api.SessionsListSessionsHandler = sessions.ListSessionsHandlerFunc(func(params sessions.ListSessionsParams) middleware.Responder {
-		return handler.ListSessions(params, db)
+	api.AuthAuthorizeHandler = auth.AuthorizeHandlerFunc(func(params auth.AuthorizeParams) middleware.Responder {
+		return handler.Authorize(params, g)
 	})
-	api.SessionsGetSessionHandler = sessions.GetSessionHandlerFunc(func(params sessions.GetSessionParams) middleware.Responder {
-		return handler.GetSession(params, db)
+	api.AuthLogoutHandler = auth.LogoutHandlerFunc(func(params auth.LogoutParams) middleware.Responder {
+		return handler.Logout(params, g)
+	})
+	api.AuthGetMeHandler = auth.GetMeHandlerFunc(func(params auth.GetMeParams) middleware.Responder {
+		return handler.GetMe(params, g)
+	})
+	api.ConfigGetConfigHandler = swaggerconfig.GetConfigHandlerFunc(func(params swaggerconfig.GetConfigParams) middleware.Responder {
+		return handler.GetConfig(params, g)
 	})
 	api.CommandsListCommandsHandler = commands.ListCommandsHandlerFunc(func(params commands.ListCommandsParams) middleware.Responder {
-		return handler.ListCommands(params, db)
+		return handler.ListCommands(params, g)
+	})
+	api.SessionsListSessionsHandler = sessions.ListSessionsHandlerFunc(func(params sessions.ListSessionsParams) middleware.Responder {
+		return handler.ListSessions(params, g)
 	})
 
 	api.ServerShutdown = func() {
@@ -124,7 +125,9 @@ func configureAPI(api *operations.EntryAPI) http.Handler {
 		db.Close()
 	}
 
-	return setupGlobalMiddleware(api.Serve(setupMiddlewares))
+	return setupGlobalMiddleware(api.Serve(func(h http.Handler) http.Handler {
+		return handler.AuthAPI(h, g)
+	}))
 }
 
 // The TLS configuration before HTTPS server starts.
@@ -141,12 +144,12 @@ func configureServer(s *graceful.Server, scheme, addr string) {
 
 // The middleware configuration is for the handler executors. These do not apply to the swagger.json document.
 // The middleware executes after routing but before authentication, binding and validation
-func setupMiddlewares(handler http.Handler) http.Handler {
-	return handler
+func setupMiddlewares(h http.Handler) http.Handler {
+	return h
 }
 
 // The middleware configuration happens before anything, this middleware also applies to serving the swagger.json document.
 // So this is a good place to plug in a panic handling middleware, logging and metrics
-func setupGlobalMiddleware(handler http.Handler) http.Handler {
-	return handler
+func setupGlobalMiddleware(h http.Handler) http.Handler {
+	return h
 }

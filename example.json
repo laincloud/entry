@@ -1,5 +1,12 @@
 {
-    "sso_url": "https://sso.laindomain",
+    "sso": {
+        "domain": "sso.${LAIN_DOMAIN}",
+        "client_id": "fake",
+        "client_secret": "fake",
+        "redirect_uri": "https://entry.${LAIN_DOMAIN}/api/authorize",
+        "entry_group": "lainapp-${LAIN_DOMAIN}-entry",
+        "scope": "read:user"
+    },
     "mysql": {
         "username": "fake",
         "password": "fake",

@@ -15,7 +15,7 @@ function MyDateTimePicker(props) {
           onChange={props.onChange}
           ampm={false}
           disableFuture={true}
-          format="YYYY-MM-DD hh:mm"
+          format="YYYY-MM-DD HH:mm"
           label="Since"
           margin="normal"
         />

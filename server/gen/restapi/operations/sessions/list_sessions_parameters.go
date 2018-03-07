@@ -12,6 +12,7 @@ import (
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/swag"
+	"github.com/go-openapi/validate"
 
 	strfmt "github.com/go-openapi/strfmt"
 )
@@ -46,6 +47,11 @@ type ListSessionsParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
+	/*Cookie with access_token
+	  Required: true
+	  In: header
+	*/
+	Cookie string
 	/*
 	  In: query
 	*/
@@ -82,6 +88,10 @@ func (o *ListSessionsParams) BindRequest(r *http.Request, route *middleware.Matc
 
 	qs := runtime.Values(r.URL.Query())
 
+	if err := o.bindCookie(r.Header[http.CanonicalHeaderKey("Cookie")], true, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
 	qAppName, qhkAppName, _ := qs.GetOK("app_name")
 	if err := o.bindAppName(qAppName, qhkAppName, route.Formats); err != nil {
 		res = append(res, err)
@@ -110,6 +120,26 @@ func (o *ListSessionsParams) BindRequest(r *http.Request, route *middleware.Matc
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (o *ListSessionsParams) bindCookie(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	if !hasKey {
+		return errors.Required("Cookie", "header")
+	}
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: true
+
+	if err := validate.RequiredString("Cookie", "header", raw); err != nil {
+		return err
+	}
+
+	o.Cookie = raw
+
 	return nil
 }
 

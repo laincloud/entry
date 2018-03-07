@@ -22,14 +22,16 @@ import {
 } from 'material-ui/styles/colorManipulator';
 import TextField from 'material-ui/TextField';
 import Button from 'material-ui/Button';
-import axios from 'axios';
 import {
   format
 } from 'date-fns';
 
 import MyDateTimePicker from './MyDateTimePicker.jsx';
+import {
+  get
+} from '../MyAxios.jsx';
 
-const LIMIT = 100;
+const LIMIT = 200;
 
 const queryStyles = theme => ({
   container: {
@@ -50,12 +52,6 @@ const queryStyles = theme => ({
     margin: theme.spacing.unit * 3,
   }
 })
-
-var myAxios = axios.create({
-  headers: {
-    'Accept': 'application/vnd.laincloud.entry.v1+json'
-  }
-});
 
 class Query extends React.Component {
   render() {
@@ -136,7 +132,7 @@ Query.propTypes = {
   onUserChange: PropTypes.func.isRequired,
   appName: PropTypes.string.isRequired,
   onAppNameChange: PropTypes.func.isRequired,
-  content: PropTypes.object.isRequired,
+  content: PropTypes.string.isRequired,
   onContentChange: PropTypes.func.isRequired,
   sessionID: PropTypes.string.isRequired,
   onSessionIDChange: PropTypes.func.isRequired,
@@ -160,22 +156,10 @@ const columnData = [{
     label: 'User'
   },
   {
-    id: 'appName',
+    id: 'app',
     numeric: false,
     disablePadding: true,
-    label: 'App Name'
-  },
-  {
-    id: 'procName',
-    numeric: false,
-    disablePadding: true,
-    label: 'Proc Name'
-  },
-  {
-    id: 'instanceNo',
-    numeric: true,
-    disablePadding: false,
-    label: 'Instance No'
+    label: 'AppName.ProcName.InstanceNo'
   },
   {
     id: 'content',
@@ -311,7 +295,7 @@ class Commands extends React.Component {
     this.state = {
       user: '',
       appName: '',
-      since: new Date(),
+      content: '',
       order: 'desc',
       orderBy: 'commandID',
       data: [],
@@ -330,12 +314,6 @@ class Commands extends React.Component {
     this.setState({
       [name]: event.target.value
     });
-  }
-
-  handleSinceChange = since => {
-    this.setState({
-      since: since
-    })
   }
 
   handleRequestSort = (event, property) => {
@@ -357,6 +335,24 @@ class Commands extends React.Component {
     });
   }
 
+  loadMoreData = (response) => {
+    response.data.sort((a, b) => b.command_id < a.command_id ? -1 :
+      1);
+    let newData = response.data.map(x => ({
+      commandID: x.command_id,
+      user: x.user,
+      appName: x.app_name,
+      procName: x.proc_name,
+      instanceNo: x.instance_no,
+      content: x.content,
+      sessionID: x.session_id,
+      createdAt: new Date(x.created_at * 1000)
+    }));
+    this.setState({
+      data: this.state.data.concat(newData)
+    });
+  };
+
   handleChangePage = (event, page) => {
     this.setState({
       page
@@ -368,7 +364,7 @@ class Commands extends React.Component {
       let params = {
         limit: LIMIT,
         offset: count,
-        since: Math.floor(this.state.since / 1000)
+        since: Math.floor(this.props.since / 1000)
       }
       if (this.state.user) {
         params['user'] = this.state.user;
@@ -376,40 +372,15 @@ class Commands extends React.Component {
       if (this.state.appName) {
         params['app_name'] = this.state.appName;
       }
-      if (this.state.sessionID) {
-        params['session_id'] = this.state.sessionID;
+      if (this.props.sessionID) {
+        params['session_id'] = this.props.sessionID;
       }
       if (this.state.content) {
         params['content'] = this.state.content;
       }
-      myAxios.get('/api/commands', {
-          params: params
-        })
-        .then(response => {
-          console.info(response);
-          let data = this.state.data.slice();
-          response.data.sort((a, b) => b.command_id < a.command_id ? -1 :
-            1);
-          response.data.forEach(item => {
-            data.push({
-              commandID: item.command_id,
-              user: item.user,
-              appName: item.app_name,
-              procName: item.proc_name,
-              instanceNo: item.instance_no,
-              content: item.content,
-              sessionID: item.session_id,
-              createdAt: format(new Date(item.created_at * 1000),
-                'YYYY-MM-DD HH:mm:ss')
-            });
-          });
-          this.setState({
-            data: data
-          });
-        })
-        .catch(err => {
-          console.error(err);
-        });
+      get('/api/commands', this.loadMoreData, {
+        params: params
+      });
     }
   }
 
@@ -419,8 +390,20 @@ class Commands extends React.Component {
     });
   }
 
-  handleQuery = () => {
+  loadData = (response => {
+    response.data.sort((a, b) => b.command_id < a.command_id ? -1 : 1);
+    let data = response.data.map(x => ({
+      commandID: x.command_id,
+      user: x.user,
+      appName: x.app_name,
+      procName: x.proc_name,
+      instanceNo: x.instance_no,
+      content: x.content,
+      sessionID: x.session_id,
+      createdAt: new Date(x.created_at * 1000)
+    }));
     this.setState({
+      data: data,
       queryStyle: {
         marginTop: '0vh'
       },
@@ -429,12 +412,13 @@ class Commands extends React.Component {
       },
       page: 0
     });
+  });
 
-    console.info(this.state);
+  handleQuery = () => {
     let params = {
       limit: LIMIT,
       offset: 0,
-      since: Math.floor(this.state.since / 1000)
+      since: Math.floor(this.props.since / 1000)
     }
     if (this.state.user) {
       params['user'] = this.state.user;
@@ -442,51 +426,29 @@ class Commands extends React.Component {
     if (this.state.appName) {
       params['app_name'] = this.state.appName;
     }
-    if (this.state.sessionID) {
-      params['session_id'] = this.state.sessionID;
+    if (this.props.sessionID) {
+      params['session_id'] = this.props.sessionID;
     }
     if (this.state.content) {
       params['content'] = this.state.content;
     }
-    myAxios.get('/api/commands', {
-        params: params
-      })
-      .then(response => {
-        console.info(response);
-        let data = [];
-        response.data.sort((a, b) => b.command_id < a.command_id ? -1 : 1);
-        response.data.forEach(item => {
-          data.push({
-            commandID: item.command_id,
-            user: item.user,
-            appName: item.app_name,
-            procName: item.proc_name,
-            instanceNo: item.instance_no,
-            content: item.content,
-            sessionID: item.session_id,
-            createdAt: format(new Date(item.created_at * 1000),
-              'YYYY-MM-DD HH:mm:ss')
-          });
-        });
-        this.setState({
-          data: data
-        });
-      })
-      .catch(err => {
-        console.error(err);
-      });
+    get('/api/commands', this.loadData, {
+      params: params
+    });
   }
 
   render() {
     const {
-      classes
+      classes,
+      sessionID,
+      onSessionIDChange,
+      since,
+      onSinceChange
     } = this.props;
     const {
       user,
       appName,
-      sessionID,
       content,
-      since,
       data,
       order,
       orderBy,
@@ -509,9 +471,9 @@ class Commands extends React.Component {
             content={content}
             onContentChange={this.handleTextFieldChange('content')}
             sessionID={sessionID}
-            onSessionIDChange={this.handleTextFieldChange('sessionID')}
+            onSessionIDChange={onSessionIDChange}
             since={since}
-            onSinceChange={this.handleSinceChange}
+            onSinceChange={onSinceChange}
             onClick={this.handleQuery}
             colSpan={12}
           />
@@ -539,12 +501,10 @@ class Commands extends React.Component {
                       >
                         <TableCell numeric>{n.commandID}</TableCell>
                         <TableCell padding="none">{n.user}</TableCell>
-                        <TableCell padding="none">{n.appName}</TableCell>
-                        <TableCell padding="none">{n.procName}</TableCell>
-                        <TableCell numeric>{n.instanceNo}</TableCell>
+                        <TableCell padding="none">{n.appName}.{n.procName}.{n.instanceNo}</TableCell>
                         <TableCell padding="none">{n.content}</TableCell>
                         <TableCell numeric>{n.sessionID}</TableCell>
-                        <TableCell padding="none">{n.createdAt}</TableCell>
+                        <TableCell padding="none">{format(n.createdAt, 'YYYY-MM-DD HH:mm:ss')}</TableCell>
                       </TableRow>
                     );
                   })}
@@ -561,6 +521,7 @@ class Commands extends React.Component {
                       colSpan={12}
                       count={data.length}
                       rowsPerPage={rowsPerPage}
+                      rowsPerPageOptions={[5, 10, 25, 50, 100]}
                       page={page}
                       backIconButtonProps={{
                         'aria-label': 'Previous Page'
@@ -583,7 +544,11 @@ class Commands extends React.Component {
 }
 
 Commands.propTypes = {
-  classes: PropTypes.object.isRequired
+  classes: PropTypes.object.isRequired,
+  sessionID: PropTypes.string.isRequired,
+  onSessionIDChange: PropTypes.func.isRequired,
+  since: PropTypes.object.isRequired,
+  onSinceChange: PropTypes.func.isRequired
 };
 
 export default withStyles(styles)(Commands);

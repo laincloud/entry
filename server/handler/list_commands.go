@@ -4,18 +4,22 @@ import (
 	"time"
 
 	"github.com/go-openapi/runtime/middleware"
-	"github.com/jinzhu/gorm"
 
 	swaggermodels "github.com/laincloud/entry/server/gen/models"
+
 	"github.com/laincloud/entry/server/gen/restapi/operations/commands"
+	"github.com/laincloud/entry/server/global"
 	"github.com/laincloud/entry/server/models"
 )
 
 // ListCommands list commands in database
-func ListCommands(params commands.ListCommandsParams, db *gorm.DB) middleware.Responder {
-	newDB := db.Joins("inner join sessions on sessions.session_id = commands.session_id")
+func ListCommands(params commands.ListCommandsParams, g *global.Global) middleware.Responder {
+	newDB := g.DB.Joins("inner join sessions on sessions.session_id = commands.session_id")
 	since := time.Unix(*params.Since, 0)
-	newDB = newDB.Where("commands.created_at > ? AND commands.content LIKE ?", since, *params.Content)
+	newDB = newDB.Where("commands.created_at > ?", since)
+	if params.Content != nil && *params.Content != "" {
+		newDB = newDB.Where("commands.content LIKE ?", *params.Content)
+	}
 	if params.AppName != nil && *params.AppName != "" {
 		newDB = newDB.Where("sessions.app_name = ?", *params.AppName)
 	}
@@ -26,7 +30,7 @@ func ListCommands(params commands.ListCommandsParams, db *gorm.DB) middleware.Re
 		newDB = newDB.Where("commands.session_id = ?", *params.SessionID)
 	}
 	var dbCommands []models.Command
-	newDB.Limit(*params.Limit).Offset(*params.Offset).Preload("Session").Find(&dbCommands)
+	newDB.Order("commands.command_id desc").Limit(*params.Limit).Offset(*params.Offset).Preload("Session").Find(&dbCommands)
 	payload := make([]*swaggermodels.Command, len(dbCommands))
 	for i, dbCommand := range dbCommands {
 		swaggerCommand := dbCommand.SwaggerModel()

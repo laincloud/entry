@@ -33,6 +33,44 @@ func init() {
     "version": "3.0.0"
   },
   "paths": {
+    "/api/authorize": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "operationId": "authorize",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Authorization code",
+            "name": "code",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "307": {
+            "description": "redirect to homepage of frontend",
+            "headers": {
+              "Location": {
+                "type": "string",
+                "description": "homepage of frontend"
+              },
+              "Set-Cookie": {
+                "type": "string",
+                "description": "set access_token in cookie"
+              }
+            }
+          },
+          "default": {
+            "description": "generic error response",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/api/commands": {
       "get": {
         "tags": [
@@ -40,6 +78,13 @@ func init() {
         ],
         "operationId": "listCommands",
         "parameters": [
+          {
+            "type": "string",
+            "description": "Cookie with access_token",
+            "name": "Cookie",
+            "in": "header",
+            "required": true
+          },
           {
             "type": "integer",
             "format": "int64",
@@ -74,7 +119,6 @@ func init() {
           },
           {
             "type": "string",
-            "default": "%",
             "description": "query pattern(MySQL LIKE pattern match)",
             "name": "content",
             "in": "query"
@@ -94,6 +138,84 @@ func init() {
               "items": {
                 "$ref": "#/definitions/command"
               }
+            }
+          },
+          "default": {
+            "description": "generic error response",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/api/config": {
+      "get": {
+        "tags": [
+          "config"
+        ],
+        "operationId": "getConfig",
+        "responses": {
+          "200": {
+            "description": "the configuration of entry",
+            "schema": {
+              "$ref": "#/definitions/config"
+            }
+          },
+          "default": {
+            "description": "generic error response",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/api/logout": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "operationId": "logout",
+        "responses": {
+          "200": {
+            "description": "logout",
+            "headers": {
+              "Set-Cookie": {
+                "type": "string",
+                "description": "delete access_token in cookie"
+              }
+            }
+          },
+          "default": {
+            "description": "generic error response",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/api/me": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "operationId": "getMe",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Cookie with access_token",
+            "name": "Cookie",
+            "in": "header",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "the user corresponding to the access_token",
+            "schema": {
+              "$ref": "#/definitions/user"
             }
           },
           "default": {
@@ -134,6 +256,13 @@ func init() {
         ],
         "operationId": "listSessions",
         "parameters": [
+          {
+            "type": "string",
+            "description": "Cookie with access_token",
+            "name": "Cookie",
+            "in": "header",
+            "required": true
+          },
           {
             "type": "integer",
             "format": "int64",
@@ -185,37 +314,6 @@ func init() {
           }
         }
       }
-    },
-    "/api/sessions/{session_id}": {
-      "get": {
-        "tags": [
-          "sessions"
-        ],
-        "operationId": "getSession",
-        "responses": {
-          "200": {
-            "description": "list the sessions",
-            "schema": {
-              "$ref": "#/definitions/session"
-            }
-          },
-          "default": {
-            "description": "generic error response",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      },
-      "parameters": [
-        {
-          "type": "integer",
-          "format": "int64",
-          "name": "session_id",
-          "in": "path",
-          "required": true
-        }
-      ]
     },
     "/attach": {
       "get": {
@@ -280,6 +378,37 @@ func init() {
         }
       }
     },
+    "config": {
+      "type": "object",
+      "required": [
+        "sso"
+      ],
+      "properties": {
+        "sso": {
+          "type": "object",
+          "required": [
+            "domain",
+            "client_id",
+            "redirect_uri",
+            "scope"
+          ],
+          "properties": {
+            "client_id": {
+              "type": "string"
+            },
+            "domain": {
+              "type": "string"
+            },
+            "redirect_uri": {
+              "type": "string"
+            },
+            "scope": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
     "error": {
       "type": "object",
       "required": [
@@ -338,6 +467,17 @@ func init() {
           "type": "string"
         },
         "user": {
+          "type": "string"
+        }
+      }
+    },
+    "user": {
+      "type": "object",
+      "required": [
+        "email"
+      ],
+      "properties": {
+        "email": {
           "type": "string"
         }
       }
@@ -360,6 +500,44 @@ func init() {
     "version": "3.0.0"
   },
   "paths": {
+    "/api/authorize": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "operationId": "authorize",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Authorization code",
+            "name": "code",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "307": {
+            "description": "redirect to homepage of frontend",
+            "headers": {
+              "Location": {
+                "type": "string",
+                "description": "homepage of frontend"
+              },
+              "Set-Cookie": {
+                "type": "string",
+                "description": "set access_token in cookie"
+              }
+            }
+          },
+          "default": {
+            "description": "generic error response",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/api/commands": {
       "get": {
         "tags": [
@@ -367,6 +545,13 @@ func init() {
         ],
         "operationId": "listCommands",
         "parameters": [
+          {
+            "type": "string",
+            "description": "Cookie with access_token",
+            "name": "Cookie",
+            "in": "header",
+            "required": true
+          },
           {
             "type": "integer",
             "format": "int64",
@@ -401,7 +586,6 @@ func init() {
           },
           {
             "type": "string",
-            "default": "%",
             "description": "query pattern(MySQL LIKE pattern match)",
             "name": "content",
             "in": "query"
@@ -421,6 +605,84 @@ func init() {
               "items": {
                 "$ref": "#/definitions/command"
               }
+            }
+          },
+          "default": {
+            "description": "generic error response",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/api/config": {
+      "get": {
+        "tags": [
+          "config"
+        ],
+        "operationId": "getConfig",
+        "responses": {
+          "200": {
+            "description": "the configuration of entry",
+            "schema": {
+              "$ref": "#/definitions/config"
+            }
+          },
+          "default": {
+            "description": "generic error response",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/api/logout": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "operationId": "logout",
+        "responses": {
+          "200": {
+            "description": "logout",
+            "headers": {
+              "Set-Cookie": {
+                "type": "string",
+                "description": "delete access_token in cookie"
+              }
+            }
+          },
+          "default": {
+            "description": "generic error response",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/api/me": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "operationId": "getMe",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Cookie with access_token",
+            "name": "Cookie",
+            "in": "header",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "the user corresponding to the access_token",
+            "schema": {
+              "$ref": "#/definitions/user"
             }
           },
           "default": {
@@ -461,6 +723,13 @@ func init() {
         ],
         "operationId": "listSessions",
         "parameters": [
+          {
+            "type": "string",
+            "description": "Cookie with access_token",
+            "name": "Cookie",
+            "in": "header",
+            "required": true
+          },
           {
             "type": "integer",
             "format": "int64",
@@ -512,37 +781,6 @@ func init() {
           }
         }
       }
-    },
-    "/api/sessions/{session_id}": {
-      "get": {
-        "tags": [
-          "sessions"
-        ],
-        "operationId": "getSession",
-        "responses": {
-          "200": {
-            "description": "list the sessions",
-            "schema": {
-              "$ref": "#/definitions/session"
-            }
-          },
-          "default": {
-            "description": "generic error response",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      },
-      "parameters": [
-        {
-          "type": "integer",
-          "format": "int64",
-          "name": "session_id",
-          "in": "path",
-          "required": true
-        }
-      ]
     },
     "/attach": {
       "get": {
@@ -607,6 +845,41 @@ func init() {
         }
       }
     },
+    "config": {
+      "type": "object",
+      "required": [
+        "sso"
+      ],
+      "properties": {
+        "sso": {
+          "$ref": "#/definitions/configSso"
+        }
+      }
+    },
+    "configSso": {
+      "type": "object",
+      "required": [
+        "domain",
+        "client_id",
+        "redirect_uri",
+        "scope"
+      ],
+      "properties": {
+        "client_id": {
+          "type": "string"
+        },
+        "domain": {
+          "type": "string"
+        },
+        "redirect_uri": {
+          "type": "string"
+        },
+        "scope": {
+          "type": "string"
+        }
+      },
+      "x-go-gen-location": "models"
+    },
     "error": {
       "type": "object",
       "required": [
@@ -665,6 +938,17 @@ func init() {
           "type": "string"
         },
         "user": {
+          "type": "string"
+        }
+      }
+    },
+    "user": {
+      "type": "object",
+      "required": [
+        "email"
+      ],
+      "properties": {
+        "email": {
           "type": "string"
         }
       }

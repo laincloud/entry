@@ -3,6 +3,7 @@ package handler
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"io"
 	"net/http"
 	"sync"
@@ -14,6 +15,7 @@ import (
 	"github.com/mijia/sweb/log"
 
 	"github.com/laincloud/entry/message"
+	swaggermodels "github.com/laincloud/entry/server/gen/models"
 	"github.com/laincloud/entry/server/global"
 	"github.com/laincloud/entry/server/models"
 	"github.com/laincloud/entry/server/util"
@@ -24,6 +26,7 @@ const (
 	readBufferSize         = 1024
 	writeBufferSize        = 10240 //The write buffer size should be large
 	asciiCR                = 13
+	keyAccessToken         = "access_token"
 )
 
 var (
@@ -32,9 +35,53 @@ var (
 		WriteBufferSize: writeBufferSize,
 		CheckOrigin:     func(r *http.Request) bool { return true },
 	}
+
+	noAuthAPIPaths = []string{
+		"/enter",
+		"/attach",
+		"/api/authorize",
+		"/api/config",
+		"/api/logout",
+		"/api/ping",
+	}
 )
 
 type websocketHandlerFunc func(ctx context.Context, conn *websocket.Conn, r *http.Request, s *models.Session, g *global.Global)
+
+// AuthAPI judge whether the request has right to our API
+func AuthAPI(h http.Handler, g *global.Global) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log.Infof("request: %+v.", r)
+
+		for _, p := range noAuthAPIPaths {
+			if r.URL.Path == p {
+				h.ServeHTTP(w, r)
+				return
+			}
+		}
+
+		accessToken, err := r.Cookie(keyAccessToken)
+		if err != nil {
+			errMsg := err.Error()
+			w.WriteHeader(http.StatusUnauthorized)
+			json.NewEncoder(w).Encode(swaggermodels.Error{
+				Message: &errMsg,
+			})
+			return
+		}
+
+		if _, err = util.AuthAPI(accessToken.Value, g); err != nil {
+			errMsg := err.Error()
+			w.WriteHeader(http.StatusUnauthorized)
+			json.NewEncoder(w).Encode(swaggermodels.Error{
+				Message: &errMsg,
+			})
+			return
+		}
+
+		h.ServeHTTP(w, r)
+	})
+}
 
 // HandleWebsocket handle websocket request
 func HandleWebsocket(ctx context.Context, sessionType string, f websocketHandlerFunc, r *http.Request, g *global.Global) middleware.Responder {

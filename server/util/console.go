@@ -1,4 +1,4 @@
-package auth
+package util
 
 import (
 	"encoding/json"
@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/laincloud/entry/server/global"
+	"github.com/laincloud/entry/server/sso"
 )
 
 type ConsoleAuthConf struct {
@@ -23,7 +24,7 @@ type ConsoleAuthResponse struct {
 	Role    ConsoleRole `json:"role"`
 }
 
-func validateConsoleRole(authURL, token string, g *global.Global) (*SSOUser, error) {
+func validateConsoleRole(authURL, token string, g *global.Global) (*sso.User, error) {
 	var (
 		err       error
 		req       *http.Request
@@ -48,5 +49,5 @@ func validateConsoleRole(authURL, token string, g *global.Global) (*SSOUser, err
 	if caResp.Role.Role == "" {
 		return nil, ErrAuthFailed
 	}
-	return GetSSOUser(token, g)
+	return g.SSOClient.GetUser(token)
 }

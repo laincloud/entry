@@ -1,4 +1,4 @@
-package auth
+package util
 
 import (
 	"encoding/json"
@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/laincloud/entry/server/global"
+	"github.com/laincloud/entry/server/sso"
 )
 
 const (
@@ -19,8 +20,8 @@ var (
 	ErrContainerNotfound = errors.New("get data successfully but not found the container")
 )
 
-// Auth authorizes whether the client with the token has the right to access the application
-func Auth(token, appName string, g *global.Global) (*SSOUser, error) {
+// AuthContainer authorizes whether the client with the token has the right to access the application's container
+func AuthContainer(token, appName string, g *global.Global) (*sso.User, error) {
 	var (
 		data []byte
 		err  error
@@ -44,7 +45,21 @@ func Auth(token, appName string, g *global.Global) (*SSOUser, error) {
 		return nil, ErrAuthNotSupported
 	}
 
-	return &SSOUser{
+	return &sso.User{
 		Email: anonymousEmail,
 	}, nil
+}
+
+// AuthAPI authorizes whether the client with this token has right to access the API
+func AuthAPI(accessToken string, g *global.Global) (*sso.User, error) {
+	user, err := g.SSOClient.GetUser(accessToken)
+	if err != nil {
+		return nil, err
+	}
+
+	if !g.SSOClient.IsEntryOwner(*user) {
+		return nil, fmt.Errorf("%s is not entry's owner", user.Email)
+	}
+
+	return user, nil
 }

@@ -32,12 +32,111 @@ paths:
         200:
           description: placeholder
 
+  /api/ping:
+    get:
+      tags:
+        - ping
+      operationId: ping
+      responses:
+        200:
+          description: this server is healthy
+          schema:
+            type: string
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/error"
+
+  /api/authorize:
+    get:
+      tags:
+        - auth
+      operationId: authorize
+      parameters:
+        - name: code
+          description: "Authorization code"
+          in: query
+          type: string
+          required: true
+      responses:
+        307:
+          description: redirect to homepage of frontend
+          headers:
+            Location:
+              description: homepage of frontend
+              type: string
+            Set-Cookie:
+              description: set access_token in cookie
+              type: string
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/error"
+
+  /api/logout:
+    get:
+      tags:
+        - auth
+      operationId: logout
+      responses:
+        200:
+          description: logout
+          headers:
+            Set-Cookie:
+              description: delete access_token in cookie
+              type: string
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/error"
+
+  /api/me:
+    get:
+      tags:
+        - auth
+      operationId: getMe
+      parameters:
+        - name: Cookie
+          description: Cookie with access_token
+          in: header
+          required: true
+          type: string
+      responses:
+        200:
+          description: the user corresponding to the access_token
+          schema:
+            $ref: "#/definitions/user"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/error"
+
+  /api/config:
+    get:
+      tags:
+        - config
+      operationId: getConfig
+      responses:
+        200:
+          description: the configuration of entry
+          schema:
+            $ref: "#/definitions/config"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/error"
+
   /api/commands:
     get:
       tags:
         - commands
       operationId: listCommands
       parameters:
+        - name: Cookie
+          description: Cookie with access_token
+          in: header
+          required: true
+          type: string
         - name: since
           description: "Unix timestamp(unit: second)"
           in: query
@@ -64,7 +163,6 @@ paths:
           description: query pattern(MySQL LIKE pattern match)
           in: query
           type: string
-          default: "%"
         - name: session_id
           in: query
           type: integer
@@ -81,27 +179,17 @@ paths:
           schema:
             $ref: "#/definitions/error"
 
-  /api/ping:
-    get:
-      tags:
-        - ping
-      operationId: ping
-      responses:
-        200:
-          description: this server is healthy
-          schema:
-            type: string
-        default:
-          description: generic error response
-          schema:
-            $ref: "#/definitions/error"
-
   /api/sessions:
     get:
       tags:
         - sessions
       operationId: listSessions
       parameters:
+        - name: Cookie
+          description: Cookie with access_token
+          in: header
+          required: true
+          type: string
         - name: since
           description: "Unix timestamp(unit: second)"
           in: query
@@ -136,27 +224,6 @@ paths:
           schema:
             $ref: "#/definitions/error"
 
-  /api/sessions/{session_id}:
-    parameters:
-      - name: session_id
-        type: integer
-        format: int64
-        in: path
-        required: true
-    get:
-      tags:
-        - sessions
-      operationId: getSession
-      responses:
-        200:
-          description: list the sessions
-          schema:
-            $ref: "#/definitions/session"
-        default:
-          description: generic error response
-          schema:
-            $ref: "#/definitions/error"
-
 definitions:
   command:
     type: object
@@ -183,6 +250,28 @@ definitions:
         type: integer
         format: int64
         description: "Unix timestamp(unit: second)"
+
+  config:
+    type: object
+    required:
+      - sso
+    properties:
+      sso:
+        type: object
+        required:
+          - domain
+          - client_id
+          - redirect_uri
+          - scope
+        properties:
+          domain:
+            type: string
+          client_id:
+            type: string
+          redirect_uri:
+            type: string
+          scope:
+            type: string
 
   error:
     type: object
@@ -228,3 +317,11 @@ definitions:
         type: integer
         format: int64
         description: "Unix timestamp(unit: second)"
+
+  user:
+    type: object
+    required:
+      - email
+    properties:
+      email:
+        type: string

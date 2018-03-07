@@ -19,7 +19,9 @@ import (
 	strfmt "github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 
+	"github.com/laincloud/entry/server/gen/restapi/operations/auth"
 	"github.com/laincloud/entry/server/gen/restapi/operations/commands"
+	"github.com/laincloud/entry/server/gen/restapi/operations/config"
 	"github.com/laincloud/entry/server/gen/restapi/operations/container"
 	"github.com/laincloud/entry/server/gen/restapi/operations/ping"
 	"github.com/laincloud/entry/server/gen/restapi/operations/sessions"
@@ -45,17 +47,26 @@ func NewEntryAPI(spec *loads.Document) *EntryAPI {
 		ContainerAttachContainerHandler: container.AttachContainerHandlerFunc(func(params container.AttachContainerParams) middleware.Responder {
 			return middleware.NotImplemented("operation ContainerAttachContainer has not yet been implemented")
 		}),
+		AuthAuthorizeHandler: auth.AuthorizeHandlerFunc(func(params auth.AuthorizeParams) middleware.Responder {
+			return middleware.NotImplemented("operation AuthAuthorize has not yet been implemented")
+		}),
 		ContainerEnterContainerHandler: container.EnterContainerHandlerFunc(func(params container.EnterContainerParams) middleware.Responder {
 			return middleware.NotImplemented("operation ContainerEnterContainer has not yet been implemented")
 		}),
-		SessionsGetSessionHandler: sessions.GetSessionHandlerFunc(func(params sessions.GetSessionParams) middleware.Responder {
-			return middleware.NotImplemented("operation SessionsGetSession has not yet been implemented")
+		ConfigGetConfigHandler: config.GetConfigHandlerFunc(func(params config.GetConfigParams) middleware.Responder {
+			return middleware.NotImplemented("operation ConfigGetConfig has not yet been implemented")
+		}),
+		AuthGetMeHandler: auth.GetMeHandlerFunc(func(params auth.GetMeParams) middleware.Responder {
+			return middleware.NotImplemented("operation AuthGetMe has not yet been implemented")
 		}),
 		CommandsListCommandsHandler: commands.ListCommandsHandlerFunc(func(params commands.ListCommandsParams) middleware.Responder {
 			return middleware.NotImplemented("operation CommandsListCommands has not yet been implemented")
 		}),
 		SessionsListSessionsHandler: sessions.ListSessionsHandlerFunc(func(params sessions.ListSessionsParams) middleware.Responder {
 			return middleware.NotImplemented("operation SessionsListSessions has not yet been implemented")
+		}),
+		AuthLogoutHandler: auth.LogoutHandlerFunc(func(params auth.LogoutParams) middleware.Responder {
+			return middleware.NotImplemented("operation AuthLogout has not yet been implemented")
 		}),
 		PingPingHandler: ping.PingHandlerFunc(func(params ping.PingParams) middleware.Responder {
 			return middleware.NotImplemented("operation PingPing has not yet been implemented")
@@ -93,14 +104,20 @@ type EntryAPI struct {
 
 	// ContainerAttachContainerHandler sets the operation handler for the attach container operation
 	ContainerAttachContainerHandler container.AttachContainerHandler
+	// AuthAuthorizeHandler sets the operation handler for the authorize operation
+	AuthAuthorizeHandler auth.AuthorizeHandler
 	// ContainerEnterContainerHandler sets the operation handler for the enter container operation
 	ContainerEnterContainerHandler container.EnterContainerHandler
-	// SessionsGetSessionHandler sets the operation handler for the get session operation
-	SessionsGetSessionHandler sessions.GetSessionHandler
+	// ConfigGetConfigHandler sets the operation handler for the get config operation
+	ConfigGetConfigHandler config.GetConfigHandler
+	// AuthGetMeHandler sets the operation handler for the get me operation
+	AuthGetMeHandler auth.GetMeHandler
 	// CommandsListCommandsHandler sets the operation handler for the list commands operation
 	CommandsListCommandsHandler commands.ListCommandsHandler
 	// SessionsListSessionsHandler sets the operation handler for the list sessions operation
 	SessionsListSessionsHandler sessions.ListSessionsHandler
+	// AuthLogoutHandler sets the operation handler for the logout operation
+	AuthLogoutHandler auth.LogoutHandler
 	// PingPingHandler sets the operation handler for the ping operation
 	PingPingHandler ping.PingHandler
 
@@ -170,12 +187,20 @@ func (o *EntryAPI) Validate() error {
 		unregistered = append(unregistered, "container.AttachContainerHandler")
 	}
 
+	if o.AuthAuthorizeHandler == nil {
+		unregistered = append(unregistered, "auth.AuthorizeHandler")
+	}
+
 	if o.ContainerEnterContainerHandler == nil {
 		unregistered = append(unregistered, "container.EnterContainerHandler")
 	}
 
-	if o.SessionsGetSessionHandler == nil {
-		unregistered = append(unregistered, "sessions.GetSessionHandler")
+	if o.ConfigGetConfigHandler == nil {
+		unregistered = append(unregistered, "config.GetConfigHandler")
+	}
+
+	if o.AuthGetMeHandler == nil {
+		unregistered = append(unregistered, "auth.GetMeHandler")
 	}
 
 	if o.CommandsListCommandsHandler == nil {
@@ -184,6 +209,10 @@ func (o *EntryAPI) Validate() error {
 
 	if o.SessionsListSessionsHandler == nil {
 		unregistered = append(unregistered, "sessions.ListSessionsHandler")
+	}
+
+	if o.AuthLogoutHandler == nil {
+		unregistered = append(unregistered, "auth.LogoutHandler")
 	}
 
 	if o.PingPingHandler == nil {
@@ -296,12 +325,22 @@ func (o *EntryAPI) initHandlerCache() {
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
+	o.handlers["GET"]["/api/authorize"] = auth.NewAuthorize(o.context, o.AuthAuthorizeHandler)
+
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
 	o.handlers["GET"]["/enter"] = container.NewEnterContainer(o.context, o.ContainerEnterContainerHandler)
 
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/api/sessions/{session_id}"] = sessions.NewGetSession(o.context, o.SessionsGetSessionHandler)
+	o.handlers["GET"]["/api/config"] = config.NewGetConfig(o.context, o.ConfigGetConfigHandler)
+
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/api/me"] = auth.NewGetMe(o.context, o.AuthGetMeHandler)
 
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
@@ -312,6 +351,11 @@ func (o *EntryAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/api/sessions"] = sessions.NewListSessions(o.context, o.SessionsListSessionsHandler)
+
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/api/logout"] = auth.NewLogout(o.context, o.AuthLogoutHandler)
 
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
