@@ -37,7 +37,7 @@ const queryStyles = theme => ({
   container: {
     display: 'flex',
     flexWrap: 'wrap',
-    marginBottom: theme.spacing.unit * 15,
+    marginBottom: theme.spacing.unit * 10,
     justifyContent: 'center'
   },
   textField: {
@@ -302,7 +302,7 @@ class Commands extends React.Component {
       page: 0,
       rowsPerPage: 5,
       queryStyle: {
-        marginTop: '30vh'
+        marginTop: '25vh'
       },
       tableStyle: {
         display: 'none'
@@ -310,10 +310,30 @@ class Commands extends React.Component {
     };
   }
 
+  componentWillReceiveProps = (nextProps) => {
+    if (nextProps.sessionID !== this.props.sessionID) {
+      this.setState({
+        user: '',
+        appName: ''
+      }, this.handleQuery(nextProps.sessionID, nextProps.since));
+      return
+    }
+
+    if (nextProps.since !== this.props.since) {
+      this.handleQuery(nextProps.sessionID, nextProps.since);
+      return
+    }
+  }
+
   handleTextFieldChange = name => event => {
+    const {
+      sessionID,
+      since
+    } = this.props;
+
     this.setState({
       [name]: event.target.value
-    });
+    }, this.handleQuery(sessionID, since));
   }
 
   handleRequestSort = (event, property) => {
@@ -367,10 +387,10 @@ class Commands extends React.Component {
         since: Math.floor(this.props.since / 1000)
       }
       if (this.state.user) {
-        params['user'] = this.state.user;
+        params['user'] = '%' + this.state.user + '%';
       }
       if (this.state.appName) {
-        params['app_name'] = this.state.appName;
+        params['app_name'] = '%' + this.state.appName + '%';
       }
       if (this.props.sessionID) {
         params['session_id'] = this.props.sessionID;
@@ -414,20 +434,20 @@ class Commands extends React.Component {
     });
   });
 
-  handleQuery = () => {
+  handleQuery = (sessionID, since) => {
     let params = {
       limit: LIMIT,
       offset: 0,
-      since: Math.floor(this.props.since / 1000)
+      since: Math.floor(since / 1000)
     }
     if (this.state.user) {
-      params['user'] = this.state.user;
+      params['user'] = '%' + this.state.user + '%';
     }
     if (this.state.appName) {
-      params['app_name'] = this.state.appName;
+      params['app_name'] = '%' + this.state.appName + '%';
     }
-    if (this.props.sessionID) {
-      params['session_id'] = this.props.sessionID;
+    if (sessionID) {
+      params['session_id'] = sessionID;
     }
     if (this.state.content) {
       params['content'] = this.state.content;
@@ -474,7 +494,7 @@ class Commands extends React.Component {
             onSessionIDChange={onSessionIDChange}
             since={since}
             onSinceChange={onSinceChange}
-            onClick={this.handleQuery}
+            onClick={() => this.handleQuery(sessionID, since)}
             colSpan={12}
           />
         </div>

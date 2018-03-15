@@ -41,9 +41,6 @@ type Session struct {
 	// Read Only: true
 	SessionID int64 `json:"session_id,omitempty"`
 
-	// session type
-	SessionType string `json:"session_type,omitempty"`
-
 	// source ip
 	SourceIP string `json:"source_ip,omitempty"`
 

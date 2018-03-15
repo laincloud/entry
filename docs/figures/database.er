@@ -1,6 +1,5 @@
 [Session] {label: "charset=utf8mb4, can't be deleted"}
 *session_id
-session_type
 user {label: "index"}
 source_ip {label: "index"}
 app_name {label: "index"}

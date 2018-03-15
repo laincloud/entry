@@ -14,7 +14,7 @@ import (
 // EnterContainerOKCode is the HTTP code returned for type EnterContainerOK
 const EnterContainerOKCode int = 200
 
-/*EnterContainerOK placeholder
+/*EnterContainerOK enter to the container
 
 swagger:response enterContainerOK
 */

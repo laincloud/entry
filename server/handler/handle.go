@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 
@@ -35,7 +37,6 @@ var (
 		WriteBufferSize: writeBufferSize,
 		CheckOrigin:     func(r *http.Request) bool { return true },
 	}
-
 	noAuthAPIPaths = []string{
 		"/enter",
 		"/attach",
@@ -46,12 +47,15 @@ var (
 	}
 )
 
-type websocketHandlerFunc func(ctx context.Context, conn *websocket.Conn, r *http.Request, s *models.Session, g *global.Global)
+type websocketHandlerFunc func(ctx context.Context, conn *websocket.Conn, r *http.Request, g *global.Global)
 
 // AuthAPI judge whether the request has right to our API
 func AuthAPI(h http.Handler, g *global.Global) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Infof("request: %+v.", r)
+		log.Infof("Receive a request: %+v.", r)
+		defer func() {
+			log.Infof("Request: %+v has been handled.", r)
+		}()
 
 		for _, p := range noAuthAPIPaths {
 			if r.URL.Path == p {
@@ -84,7 +88,7 @@ func AuthAPI(h http.Handler, g *global.Global) http.Handler {
 }
 
 // HandleWebsocket handle websocket request
-func HandleWebsocket(ctx context.Context, sessionType string, f websocketHandlerFunc, r *http.Request, g *global.Global) middleware.Responder {
+func HandleWebsocket(ctx context.Context, f websocketHandlerFunc, r *http.Request, g *global.Global) middleware.Responder {
 	return middleware.ResponderFunc(func(w http.ResponseWriter, _ runtime.Producer) {
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
@@ -93,18 +97,7 @@ func HandleWebsocket(ctx context.Context, sessionType string, f websocketHandler
 		}
 		defer conn.Close()
 
-		session, err := models.NewSession(sessionType, conn, r, g)
-		if err != nil {
-			log.Errorf("models.NewSession() failed, error: %s.", err)
-			return
-		}
-
-		g.DB.Create(session)
-		f(ctx, conn, r, session, g)
-		g.DB.Model(session).Updates(models.Session{
-			Status:  models.SessionStatusInactive,
-			EndedAt: time.Now(),
-		})
+		f(ctx, conn, r, g)
 	})
 }
 
@@ -162,13 +155,14 @@ func handleRequest(conn *websocket.Conn, s *models.Session, sessionWriter io.Wri
 	wg.Done()
 }
 
-func handleResponse(ws *websocket.Conn, sessionReader io.ReadCloser, wg *sync.WaitGroup, respType message.ResponseMessage_ResponseType, msgMarshaller util.Marshaler, writeLock *sync.Mutex) {
+func handleResponse(conn *websocket.Conn, sessionReader io.ReadCloser, wg *sync.WaitGroup, respType message.ResponseMessage_ResponseType, msgMarshaller util.Marshaler, writeLock *sync.Mutex, typescriptFile, timingFile *os.File) {
 	var (
 		err  error
 		size int
 	)
 	buf := make([]byte, writeBufferSize)
 	cursor := 0
+	oldTime := time.Now()
 	for err == nil {
 		if size, err = sessionReader.Read(buf[cursor:]); err == nil || (err == io.EOF && size > 0) {
 			validLen := util.GetValidUT8Length(buf[:cursor+size])
@@ -176,6 +170,15 @@ func handleResponse(ws *websocket.Conn, sessionReader io.ReadCloser, wg *sync.Wa
 				log.Errorf("No valid UTF8 sequence prefix")
 				break
 			}
+
+			if typescriptFile != nil && timingFile != nil {
+				typescriptFile.Write(buf[:validLen])
+				newTime := time.Now()
+				delay := newTime.Sub(oldTime)
+				oldTime = newTime
+				fmt.Fprintf(timingFile, "%f %d\n", float64(delay)/1e9, validLen)
+			}
+
 			outMsg := &message.ResponseMessage{
 				MsgType: respType,
 				Content: buf[:validLen],
@@ -183,7 +186,7 @@ func handleResponse(ws *websocket.Conn, sessionReader io.ReadCloser, wg *sync.Wa
 			data, marshalErr := msgMarshaller(outMsg)
 			if marshalErr == nil {
 				writeLock.Lock()
-				err = ws.WriteMessage(websocket.BinaryMessage, data)
+				err = conn.WriteMessage(websocket.BinaryMessage, data)
 				writeLock.Unlock()
 				cursor := size - validLen
 				for i := 0; i < cursor; i++ {

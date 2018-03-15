@@ -19,14 +19,12 @@ const (
 	entryAppName          = "entry"
 	SessionStatusActive   = "active"
 	SessionStatusInactive = "inactive"
-	SessionTypeAttach     = "attach"
-	SessionTypeEnter      = "enter"
+	dataPath              = "/cloud/data/sessions"
 )
 
 // Session denotes a user session connected to a container
 type Session struct {
-	SessionID   int64 `gorm:"primary_key"`
-	SessionType string
+	SessionID   int64  `gorm:"primary_key"`
 	User        string `gorm:"index"`
 	SourceIP    string `gorm:"index"`
 	AppName     string `gorm:"index"`
@@ -41,7 +39,7 @@ type Session struct {
 }
 
 // NewSession initialize a session
-func NewSession(sessionType string, conn *websocket.Conn, r *http.Request, g *global.Global) (*Session, error) {
+func NewSession(conn *websocket.Conn, r *http.Request, g *global.Global) (*Session, error) {
 	isViaWeb := r.URL.Query().Get("method") == "web"
 	var accessToken, appName, procName, instanceNo string
 	msgMarshaller, _ := util.GetMarshalers(r)
@@ -89,7 +87,6 @@ func NewSession(sessionType string, conn *websocket.Conn, r *http.Request, g *gl
 	}
 
 	s := Session{
-		SessionType: sessionType,
 		User:        ssoUser.Email,
 		SourceIP:    util.GetSourceIP(r),
 		AppName:     appName,
@@ -107,7 +104,6 @@ func NewSession(sessionType string, conn *websocket.Conn, r *http.Request, g *gl
 func (s Session) SwaggerModel() swaggermodels.Session {
 	return swaggermodels.Session{
 		SessionID:   s.SessionID,
-		SessionType: s.SessionType,
 		User:        s.User,
 		SourceIP:    s.SourceIP,
 		AppName:     s.AppName,
@@ -119,4 +115,19 @@ func (s Session) SwaggerModel() swaggermodels.Session {
 		CreatedAt:   s.CreatedAt.Unix(),
 		EndedAt:     s.EndedAt.Unix(),
 	}
+}
+
+// DataPath return the parent directory of typescript file and timing file
+func (s Session) DataPath() string {
+	return fmt.Sprintf("%s/%d", dataPath, s.SessionID)
+}
+
+// TypescriptFile return the file path which record stdout/stderr for scriptrelpay
+func (s Session) TypescriptFile() string {
+	return fmt.Sprintf("%s/typescript", s.DataPath())
+}
+
+// TimingFile return the file path which record time info for scriptrelpay
+func (s Session) TimingFile() string {
+	return fmt.Sprintf("%s/timing.txt", s.DataPath())
 }

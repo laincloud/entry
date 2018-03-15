@@ -15,22 +15,24 @@ produces:
 
 paths:
   /attach:
+    # websocket api
     get:
       tags:
         - container
       operationId: attachContainer
       responses:
         200:
-          description: placeholder
+          description: attach to container's stdout/stderr
 
   /enter:
+    # websocket api
     get:
       tags:
         - container
       operationId: enterContainer
       responses:
         200:
-          description: placeholder
+          description: enter to the container
 
   /api/ping:
     get:
@@ -154,9 +156,11 @@ paths:
           format: int64
           default: 0
         - name: user
+          description: "MySQL LIKE pattern match"
           in: query
           type: string
         - name: app_name
+          description: "MySQL LIKE pattern match"
           in: query
           type: string
         - name: content
@@ -207,9 +211,11 @@ paths:
           format: int64
           default: 0
         - name: user
+          description: "MySQL LIKE pattern match"
           in: query
           type: string
         - name: app_name
+          description: "MySQL LIKE pattern match"
           in: query
           type: string
       responses:
@@ -223,6 +229,22 @@ paths:
           description: generic error response
           schema:
             $ref: "#/definitions/error"
+
+  /api/sessions/{session_id}/replay:
+    # websocket api
+    parameters:
+      - type: integer
+        format: int64
+        name: session_id
+        in: path
+        required: true
+    get:
+      tags:
+        - sessions
+      operationId: replaySession
+      responses:
+        200:
+          description: replay the session
 
 definitions:
   command:
@@ -291,8 +313,6 @@ definitions:
         type: integer
         format: int64
         readOnly: true
-      session_type:
-        type: string
       user:
         type: string
       source_ip:

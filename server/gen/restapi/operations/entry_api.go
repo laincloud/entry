@@ -71,6 +71,9 @@ func NewEntryAPI(spec *loads.Document) *EntryAPI {
 		PingPingHandler: ping.PingHandlerFunc(func(params ping.PingParams) middleware.Responder {
 			return middleware.NotImplemented("operation PingPing has not yet been implemented")
 		}),
+		SessionsReplaySessionHandler: sessions.ReplaySessionHandlerFunc(func(params sessions.ReplaySessionParams) middleware.Responder {
+			return middleware.NotImplemented("operation SessionsReplaySession has not yet been implemented")
+		}),
 	}
 }
 
@@ -120,6 +123,8 @@ type EntryAPI struct {
 	AuthLogoutHandler auth.LogoutHandler
 	// PingPingHandler sets the operation handler for the ping operation
 	PingPingHandler ping.PingHandler
+	// SessionsReplaySessionHandler sets the operation handler for the replay session operation
+	SessionsReplaySessionHandler sessions.ReplaySessionHandler
 
 	// ServeError is called when an error is received, there is a default handler
 	// but you can set your own with this
@@ -217,6 +222,10 @@ func (o *EntryAPI) Validate() error {
 
 	if o.PingPingHandler == nil {
 		unregistered = append(unregistered, "ping.PingHandler")
+	}
+
+	if o.SessionsReplaySessionHandler == nil {
+		unregistered = append(unregistered, "sessions.ReplaySessionHandler")
 	}
 
 	if len(unregistered) > 0 {
@@ -361,6 +370,11 @@ func (o *EntryAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/api/ping"] = ping.NewPing(o.context, o.PingPingHandler)
+
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/api/sessions/{session_id}/replay"] = sessions.NewReplaySession(o.context, o.SessionsReplaySessionHandler)
 
 }
 

@@ -1,6 +1,5 @@
 CREATE TABLE `sessions` (
 `session_id` bigint(20) NOT NULL AUTO_INCREMENT,
-`session_type` varchar(255) DEFAULT NULL,
 `user` varchar(255) DEFAULT NULL,
 `source_ip` varchar(255) DEFAULT NULL,
 `app_name` varchar(255) DEFAULT NULL,

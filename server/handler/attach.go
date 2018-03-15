@@ -10,23 +10,29 @@ import (
 
 	"github.com/fsouza/go-dockerclient"
 	"github.com/gorilla/websocket"
-	"github.com/laincloud/entry/message"
 	"github.com/mijia/sweb/log"
 
+	"github.com/laincloud/entry/message"
 	"github.com/laincloud/entry/server/global"
 	"github.com/laincloud/entry/server/models"
 	"github.com/laincloud/entry/server/util"
 )
 
 // Attach attach to container to view stdout/stderr of the container
-func Attach(ctx context.Context, conn *websocket.Conn, r *http.Request, session *models.Session, g *global.Global) {
+func Attach(ctx context.Context, conn *websocket.Conn, r *http.Request, g *global.Global) {
+	s, err := models.NewSession(conn, r, g)
+	if err != nil {
+		log.Errorf("models.NewSession() failed, error: %s.", err)
+		return
+	}
+
 	stdoutPipeReader, stdoutPipeWriter := io.Pipe()
 	stderrPipeReader, stderrPipeWriter := io.Pipe()
 	wg := &sync.WaitGroup{}
 	wg.Add(2)
 
 	opts := docker.AttachToContainerOptions{
-		Container:    session.ContainerID,
+		Container:    s.ContainerID,
 		Stdin:        false,
 		Stdout:       true,
 		Stderr:       true,
@@ -37,8 +43,8 @@ func Attach(ctx context.Context, conn *websocket.Conn, r *http.Request, session 
 
 	msgMarshaller, _ := util.GetMarshalers(r)
 	writeLock := &sync.Mutex{}
-	go handleResponse(conn, stdoutPipeReader, wg, message.ResponseMessage_STDOUT, msgMarshaller, writeLock)
-	go handleResponse(conn, stderrPipeReader, wg, message.ResponseMessage_STDERR, msgMarshaller, writeLock)
+	go handleResponse(conn, stdoutPipeReader, wg, message.ResponseMessage_STDOUT, msgMarshaller, writeLock, nil, nil)
+	go handleResponse(conn, stderrPipeReader, wg, message.ResponseMessage_STDERR, msgMarshaller, writeLock, nil, nil)
 
 	stopSignal := make(chan int)
 	go func() {
@@ -62,9 +68,9 @@ func Attach(ctx context.Context, conn *websocket.Conn, r *http.Request, session 
 
 	select {
 	case <-ctx.Done():
-		log.Infof("Attaching to %s canceled.", session.ContainerID)
+		log.Infof("Attaching to %s canceled.", s.ContainerID)
 	case <-stopSignal:
-		log.Infof("Attaching to %s stopped.", session.ContainerID)
+		log.Infof("Attaching to %s stopped.", s.ContainerID)
 	}
 	stdoutPipeWriter.Close()
 	stderrPipeWriter.Close()

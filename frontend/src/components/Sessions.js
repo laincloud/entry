@@ -20,7 +20,6 @@ import Tooltip from 'material-ui/Tooltip';
 import {
   lighten
 } from 'material-ui/styles/colorManipulator';
-import MenuItem from 'material-ui/Menu/MenuItem';
 import TextField from 'material-ui/TextField';
 import Button from 'material-ui/Button';
 import IconButton from 'material-ui/IconButton';
@@ -36,13 +35,12 @@ import {
 } from '../MyAxios.jsx';
 
 const LIMIT = 200;
-const SESSION_TYPES = ['enter', 'attach'];
 
 const queryStyles = theme => ({
   container: {
     display: 'flex',
     flexWrap: 'wrap',
-    marginBottom: theme.spacing.unit * 15,
+    marginBottom: theme.spacing.unit * 10,
     justifyContent: 'center'
   },
   textField: {
@@ -62,8 +60,6 @@ class Query extends React.Component {
   render() {
     const {
       classes,
-      sessionType,
-      onSessionTypeChange,
       user,
       onUserChange,
       appName,
@@ -75,27 +71,6 @@ class Query extends React.Component {
 
     return (
       <form className={classes.container}>
-        <TextField
-          id="sessionType"
-          select
-          label="Session Type"
-          className={classes.textField}
-          value={sessionType}
-          onChange={onSessionTypeChange}
-          SelectProps={{
-            MenuProps: {
-              className: classes.menu
-            }
-          }}
-          margin="normal"
-        >
-          {SESSION_TYPES.map(option => (
-            <MenuItem key={option} value={option}>
-              {option}
-            </MenuItem>
-          ))}
-        </TextField>
-
         <TextField
           id="user"
           label="User"
@@ -134,8 +109,6 @@ class Query extends React.Component {
 
 Query.propTypes = {
   classes: PropTypes.object.isRequired,
-  sessionType: PropTypes.string.isRequired,
-  onSessionTypeChange: PropTypes.func.isRequired,
   user: PropTypes.string.isRequired,
   onUserChange: PropTypes.func.isRequired,
   appName: PropTypes.string.isRequired,
@@ -152,12 +125,6 @@ const columnData = [{
     numeric: true,
     disablePadding: false,
     label: 'Session ID'
-  },
-  {
-    id: 'sessionType',
-    numeric: false,
-    disablePadding: true,
-    label: 'Session Type'
   },
   {
     id: 'user',
@@ -324,7 +291,6 @@ class Sessions extends React.Component {
     super(props, context);
 
     this.state = {
-      sessionType: 'enter',
       user: '',
       appName: '',
       since: new Date(),
@@ -334,7 +300,7 @@ class Sessions extends React.Component {
       page: 0,
       rowsPerPage: 5,
       queryStyle: {
-        marginTop: '30vh'
+        marginTop: '25vh'
       },
       tableStyle: {
         display: 'none'
@@ -345,13 +311,13 @@ class Sessions extends React.Component {
   handleTextFieldChange = name => event => {
     this.setState({
       [name]: event.target.value
-    });
+    }, this.handleQuery);
   }
 
   handleSinceChange = since => {
     this.setState({
       since: since
-    })
+    }, this.handleQuery)
   }
 
   handleRequestSort = (event, property) => {
@@ -378,7 +344,6 @@ class Sessions extends React.Component {
       1);
     let data = response.data.map(x => ({
       sessionID: x.session_id,
-      sessionType: x.session_type,
       user: x.user,
       sourceIP: x.source_ip,
       appName: x.app_name,
@@ -407,7 +372,6 @@ class Sessions extends React.Component {
       1);
     let newData = response.data.map(x => ({
       sessionID: x.session_id,
-      sessionType: x.session_type,
       user: x.user,
       sourceIP: x.source_ip,
       appName: x.app_name,
@@ -437,10 +401,10 @@ class Sessions extends React.Component {
         since: Math.floor(this.state.since / 1000)
       }
       if (this.state.user) {
-        params['user'] = this.state.user;
+        params['user'] = '%' + this.state.user + '%';
       }
       if (this.state.appName) {
-        params['app_name'] = this.state.appName;
+        params['app_name'] = '%' + this.state.appName + '%';
       }
       get('/api/sessions', this.loadMoreData, {
         params: params
@@ -462,11 +426,11 @@ class Sessions extends React.Component {
     }
 
     if (this.state.user) {
-      params['user'] = this.state.user;
+      params['user'] = '%' + this.state.user + '%';
     }
 
     if (this.state.appName) {
-      params['app_name'] = this.state.appName;
+      params['app_name'] = '%' + this.state.appName + '%';
     }
 
     get('/api/sessions', this.loadData, {
@@ -477,10 +441,10 @@ class Sessions extends React.Component {
   render() {
     const {
       classes,
+      onReplay,
       onSearchCommands
     } = this.props;
     const {
-      sessionType,
       user,
       appName,
       since,
@@ -499,8 +463,6 @@ class Sessions extends React.Component {
       <div>
         <div style={queryStyle}>
           <Query
-            sessionType={sessionType}
-            onSessionTypeChange={this.handleTextFieldChange('sessionType')}
             user={user}
             onUserChange={this.handleTextFieldChange('user')}
             appName={appName}
@@ -533,7 +495,6 @@ class Sessions extends React.Component {
                         key={n.sessionID}
                       >
                         <TableCell numeric>{n.sessionID}</TableCell>
-                        <TableCell padding="none">{n.sessionType}</TableCell>
                         <TableCell padding="none">{n.user}</TableCell>
                         <TableCell padding="none">{n.sourceIP}</TableCell>
                         <TableCell padding="none">{n.appName}.{n.procName}.{n.instanceNo}</TableCell>
@@ -542,11 +503,6 @@ class Sessions extends React.Component {
                         <TableCell padding="none">{format(n.createdAt, 'YYYY-MM-DD HH:mm:ss')}</TableCell>
                         <TableCell padding="none">{format(n.endedAt, 'YYYY-MM-DD HH:mm:ss')}</TableCell>
                         <TableCell padding="none">
-                          <Tooltip title="Replay">
-                            <IconButton className={classes.button} aria-label="Replay">
-                              <ReplayIcon />
-                            </IconButton>
-                          </Tooltip>
                           <Tooltip title="Search Commands">
                             <IconButton
                               className={classes.button}
@@ -554,6 +510,16 @@ class Sessions extends React.Component {
                               onClick={() => onSearchCommands(n.sessionID.toString(), n.createdAt)}
                             >
                               <SearchIcon />
+                            </IconButton>
+                          </Tooltip>
+
+                          <Tooltip title="Replay">
+                            <IconButton
+                              className={classes.button}
+                              aria-label="Replay"
+                              onClick={() => onReplay(n.sessionID)}
+                            >
+                              <ReplayIcon />
                             </IconButton>
                           </Tooltip>
                         </TableCell>
@@ -597,6 +563,7 @@ class Sessions extends React.Component {
 
 Sessions.propTypes = {
   classes: PropTypes.object.isRequired,
+  onReplay: PropTypes.func.isRequired,
   onSearchCommands: PropTypes.func.isRequired
 };
 

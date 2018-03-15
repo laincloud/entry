@@ -17,10 +17,10 @@ import DateFnsUtils from 'material-ui-pickers/utils/date-fns-utils';
 
 import Commands from './Commands';
 import Sessions from './Sessions';
+import SessionReplay from './SessionReplay.jsx';
 import {
   get
 } from '../MyAxios.jsx';
-import './App.css';
 
 function TabContainer(props) {
   return (
@@ -54,8 +54,8 @@ const styles = theme => ({
     width: '90%',
     marginLeft: 'auto',
     marginRight: 'auto',
-    marginTop: theme.spacing.unit * 15,
-    marginBottom: theme.spacing.unit * 15
+    marginTop: theme.spacing.unit * 10,
+    marginBottom: theme.spacing.unit * 10
   }
 });
 
@@ -64,13 +64,8 @@ class App extends React.Component {
     user: window.localStorage.getItem('user'),
     commandsSessionID: '',
     commandsSince: new Date(),
-    tabIndex: 0,
-    sessionsTabStyle: {
-      display: 'block'
-    },
-    commandsTabStyle: {
-      display: 'none'
-    }
+    replaySessionID: 0,
+    tabIndex: 0
   };
 
   componentDidMount = () => {
@@ -111,15 +106,16 @@ class App extends React.Component {
     get('/api/logout', this.logout);
   };
 
+  handleReplay = (sessionID) => {
+    this.setState({
+      tabIndex: 2,
+      replaySessionID: sessionID
+    })
+  }
+
   handleSessionSearchCommands = (sessionID, since) => {
     this.setState({
       tabIndex: 1,
-      sessionsTabStyle: {
-        display: 'none'
-      },
-      commandsTabStyle: {
-        display: 'block'
-      },
       commandsSessionID: sessionID,
       commandsSince: since
     });
@@ -133,32 +129,14 @@ class App extends React.Component {
 
   handleCommandsSinceChange = since => {
     this.setState({
-      comandsSince: since
+      commandsSince: since
     })
   }
 
   handleTabIndexChange = (event, tabIndex) => {
-    if (tabIndex === 0) {
-      this.setState({
-        tabIndex: tabIndex,
-        sessionsTabStyle: {
-          display: 'block'
-        },
-        commandsTabStyle: {
-          display: 'none'
-        }
-      });
-    } else {
-      this.setState({
-        tabIndex: tabIndex,
-        sessionsTabStyle: {
-          display: 'none'
-        },
-        commandsTabStyle: {
-          display: 'block'
-        }
-      });
-    }
+    this.setState({
+      tabIndex: tabIndex,
+    });
   };
 
   render() {
@@ -170,8 +148,7 @@ class App extends React.Component {
       tabIndex,
       commandsSessionID,
       commandsSince,
-      sessionsTabStyle,
-      commandsTabStyle
+      replaySessionID
     } = this.state;
 
     return (
@@ -203,18 +180,23 @@ class App extends React.Component {
             <Tabs value={tabIndex} onChange={this.handleTabIndexChange}>
               <Tab label="Sessions" />
               <Tab label="Commands" />
+              {tabIndex === 2 && <Tab label="Replay" />}
             </Tabs>
           </AppBar>
 
-          <div style={sessionsTabStyle}>
+          <div style={{display: (tabIndex === 0) ? 'block' : 'none'}}>
             <TabContainer>
               <div className={classes.main}>
-                <Sessions onSearchCommands={this.handleSessionSearchCommands}></Sessions>
+                <Sessions
+                  onReplay={this.handleReplay}
+                  onSearchCommands={this.handleSessionSearchCommands}
+                >
+                </Sessions>
               </div>
             </TabContainer>
           </div>
 
-          <div style={commandsTabStyle}>
+          <div style={{display: (tabIndex === 1) ? 'block' : 'none'}}>
             <TabContainer>
               <div className={classes.main}>
                 <Commands
@@ -227,6 +209,19 @@ class App extends React.Component {
               </div>
             </TabContainer>
           </div>
+
+          {tabIndex === 2 &&
+          <div>
+            <TabContainer>
+              <div className={classes.main}>
+                <SessionReplay
+                  sessionID={replaySessionID}
+                >
+                </SessionReplay>
+              </div>
+            </TabContainer>
+          </div>
+          }
         </div>
       </MuiPickersUtilsProvider>
     );

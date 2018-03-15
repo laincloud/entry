@@ -21,10 +21,10 @@ func ListCommands(params commands.ListCommandsParams, g *global.Global) middlewa
 		newDB = newDB.Where("commands.content LIKE ?", *params.Content)
 	}
 	if params.AppName != nil && *params.AppName != "" {
-		newDB = newDB.Where("sessions.app_name = ?", *params.AppName)
+		newDB = newDB.Where("sessions.app_name LIKE ?", *params.AppName)
 	}
 	if params.User != nil && *params.User != "" {
-		newDB = newDB.Where("sessions.user = ?", *params.User)
+		newDB = newDB.Where("sessions.user LIKE ?", *params.User)
 	}
 	if params.SessionID != nil && *params.SessionID != 0 {
 		newDB = newDB.Where("commands.session_id = ?", *params.SessionID)

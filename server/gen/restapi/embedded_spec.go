@@ -109,11 +109,13 @@ func init() {
           },
           {
             "type": "string",
+            "description": "MySQL LIKE pattern match",
             "name": "user",
             "in": "query"
           },
           {
             "type": "string",
+            "description": "MySQL LIKE pattern match",
             "name": "app_name",
             "in": "query"
           },
@@ -287,11 +289,13 @@ func init() {
           },
           {
             "type": "string",
+            "description": "MySQL LIKE pattern match",
             "name": "user",
             "in": "query"
           },
           {
             "type": "string",
+            "description": "MySQL LIKE pattern match",
             "name": "app_name",
             "in": "query"
           }
@@ -315,6 +319,28 @@ func init() {
         }
       }
     },
+    "/api/sessions/{session_id}/replay": {
+      "get": {
+        "tags": [
+          "sessions"
+        ],
+        "operationId": "replaySession",
+        "responses": {
+          "200": {
+            "description": "replay the session"
+          }
+        }
+      },
+      "parameters": [
+        {
+          "type": "integer",
+          "format": "int64",
+          "name": "session_id",
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
     "/attach": {
       "get": {
         "tags": [
@@ -323,7 +349,7 @@ func init() {
         "operationId": "attachContainer",
         "responses": {
           "200": {
-            "description": "placeholder"
+            "description": "attach to container's stdout/stderr"
           }
         }
       }
@@ -336,7 +362,7 @@ func init() {
         "operationId": "enterContainer",
         "responses": {
           "200": {
-            "description": "placeholder"
+            "description": "enter to the container"
           }
         }
       }
@@ -457,9 +483,6 @@ func init() {
           "format": "int64",
           "readOnly": true
         },
-        "session_type": {
-          "type": "string"
-        },
         "source_ip": {
           "type": "string"
         },
@@ -576,11 +599,13 @@ func init() {
           },
           {
             "type": "string",
+            "description": "MySQL LIKE pattern match",
             "name": "user",
             "in": "query"
           },
           {
             "type": "string",
+            "description": "MySQL LIKE pattern match",
             "name": "app_name",
             "in": "query"
           },
@@ -754,11 +779,13 @@ func init() {
           },
           {
             "type": "string",
+            "description": "MySQL LIKE pattern match",
             "name": "user",
             "in": "query"
           },
           {
             "type": "string",
+            "description": "MySQL LIKE pattern match",
             "name": "app_name",
             "in": "query"
           }
@@ -782,6 +809,28 @@ func init() {
         }
       }
     },
+    "/api/sessions/{session_id}/replay": {
+      "get": {
+        "tags": [
+          "sessions"
+        ],
+        "operationId": "replaySession",
+        "responses": {
+          "200": {
+            "description": "replay the session"
+          }
+        }
+      },
+      "parameters": [
+        {
+          "type": "integer",
+          "format": "int64",
+          "name": "session_id",
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
     "/attach": {
       "get": {
         "tags": [
@@ -790,7 +839,7 @@ func init() {
         "operationId": "attachContainer",
         "responses": {
           "200": {
-            "description": "placeholder"
+            "description": "attach to container's stdout/stderr"
           }
         }
       }
@@ -803,7 +852,7 @@ func init() {
         "operationId": "enterContainer",
         "responses": {
           "200": {
-            "description": "placeholder"
+            "description": "enter to the container"
           }
         }
       }
@@ -927,9 +976,6 @@ func init() {
           "type": "integer",
           "format": "int64",
           "readOnly": true
-        },
-        "session_type": {
-          "type": "string"
         },
         "source_ip": {
           "type": "string"

@@ -14,7 +14,7 @@ import (
 // AttachContainerOKCode is the HTTP code returned for type AttachContainerOK
 const AttachContainerOKCode int = 200
 
-/*AttachContainerOK placeholder
+/*AttachContainerOK attach to container's stdout/stderr
 
 swagger:response attachContainerOK
 */

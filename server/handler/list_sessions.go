@@ -18,10 +18,10 @@ func ListSessions(params sessions.ListSessionsParams, g *global.Global) middlewa
 	since := time.Unix(*params.Since, 0)
 	newDB := g.DB.Where("created_at >= ?", since)
 	if params.User != nil && *params.User != "" {
-		newDB = newDB.Where("user = ?", *params.User)
+		newDB = newDB.Where("user LIKE ?", *params.User)
 	}
 	if params.AppName != nil && *params.AppName != "" {
-		newDB = newDB.Where("app_name = ?", *params.AppName)
+		newDB = newDB.Where("app_name LIKE ?", *params.AppName)
 	}
 	newDB.Order("session_id desc").Limit(*params.Limit).Offset(*params.Offset).Find(&dbSessions)
 	payload := make([]*swaggermodels.Session, len(dbSessions))

@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"sync"
+	"time"
 
 	"github.com/fsouza/go-dockerclient"
 	"github.com/gorilla/websocket"
@@ -22,7 +24,44 @@ const (
 )
 
 // Enter enter to container
-func Enter(ctx context.Context, conn *websocket.Conn, r *http.Request, s *models.Session, g *global.Global) {
+func Enter(ctx context.Context, conn *websocket.Conn, r *http.Request, g *global.Global) {
+	s, err := models.NewSession(conn, r, g)
+	if err != nil {
+		log.Errorf("models.NewSession() failed, error: %s.", err)
+		return
+	}
+
+	g.DB.Create(s)
+	defer func() {
+		g.DB.Model(s).Updates(models.Session{
+			Status:  models.SessionStatusInactive,
+			EndedAt: time.Now(),
+		})
+	}()
+
+	if err := os.MkdirAll(s.DataPath(), 0700); err != nil {
+		log.Errorf("os.MkdirAll(%s) failed, error: %s.", s.DataPath(), err)
+		return
+	}
+
+	typescriptFile, err := os.Create(s.TypescriptFile())
+	if err != nil {
+		log.Errorf("os.Create(%s) failed, error: %s.", s.TypescriptFile(), err)
+		return
+	}
+	fmt.Fprintf(typescriptFile, "Script started on %s\n", time.Now())
+	defer func() {
+		fmt.Fprintf(typescriptFile, "Script done on %s\n", time.Now())
+		typescriptFile.Close()
+	}()
+
+	timingFile, err := os.Create(s.TimingFile())
+	if err != nil {
+		log.Errorf("os.Create(%s) failed, error: %s.", s.TimingFile(), err)
+		return
+	}
+	defer timingFile.Close()
+
 	termType := r.Header.Get("term-type")
 	if len(termType) == 0 {
 		termType = "xterm-256color"
@@ -57,8 +96,8 @@ func Enter(ctx context.Context, conn *websocket.Conn, r *http.Request, s *models
 	wg.Add(3)
 	go handleAliveDetection(conn, stopSignal, msgMarshaller, writeLock)
 	go handleRequest(conn, s, stdinPipeWriter, wg, exec.ID, msgUnmarshaller, g)
-	go handleResponse(conn, stdoutPipeReader, wg, message.ResponseMessage_STDOUT, msgMarshaller, writeLock)
-	go handleResponse(conn, stderrPipeReader, wg, message.ResponseMessage_STDERR, msgMarshaller, writeLock)
+	go handleResponse(conn, stdoutPipeReader, wg, message.ResponseMessage_STDOUT, msgMarshaller, writeLock, typescriptFile, timingFile)
+	go handleResponse(conn, stderrPipeReader, wg, message.ResponseMessage_STDERR, msgMarshaller, writeLock, typescriptFile, timingFile)
 	go func() {
 		if err = g.DockerClient.StartExec(exec.ID, docker.StartExecOptions{
 			Detach:       false,

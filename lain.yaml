@@ -45,6 +45,10 @@ web:  # backend
         - SWARM_PORT=2376
     secret_files:
         - /lain/app/prod.json
+    cloud_volumes:
+        type: multi
+        dirs:
+            - /cloud
 
 proc.frontend:
     type: web

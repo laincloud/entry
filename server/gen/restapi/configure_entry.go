@@ -30,7 +30,6 @@ import (
 	"github.com/laincloud/entry/server/gen/restapi/operations/sessions"
 	"github.com/laincloud/entry/server/global"
 	"github.com/laincloud/entry/server/handler"
-	"github.com/laincloud/entry/server/models"
 )
 
 //go:generate swagger generate server --target ../server/gen --name  --spec ../swagger.yml
@@ -94,10 +93,10 @@ func configureAPI(api *operations.EntryAPI) http.Handler {
 	api.JSONProducer = runtime.JSONProducer()
 
 	api.ContainerAttachContainerHandler = container.AttachContainerHandlerFunc(func(params container.AttachContainerParams) middleware.Responder {
-		return handler.HandleWebsocket(ctx, models.SessionTypeAttach, handler.Attach, params.HTTPRequest, g)
+		return handler.HandleWebsocket(ctx, handler.Attach, params.HTTPRequest, g)
 	})
 	api.ContainerEnterContainerHandler = container.EnterContainerHandlerFunc(func(params container.EnterContainerParams) middleware.Responder {
-		return handler.HandleWebsocket(ctx, models.SessionTypeEnter, handler.Enter, params.HTTPRequest, g)
+		return handler.HandleWebsocket(ctx, handler.Enter, params.HTTPRequest, g)
 	})
 
 	api.PingPingHandler = ping.PingHandlerFunc(handler.Ping)
@@ -118,6 +117,9 @@ func configureAPI(api *operations.EntryAPI) http.Handler {
 	})
 	api.SessionsListSessionsHandler = sessions.ListSessionsHandlerFunc(func(params sessions.ListSessionsParams) middleware.Responder {
 		return handler.ListSessions(params, g)
+	})
+	api.SessionsReplaySessionHandler = sessions.ReplaySessionHandlerFunc(func(params sessions.ReplaySessionParams) middleware.Responder {
+		return handler.HandleWebsocket(ctx, handler.ReplaySession, params.HTTPRequest, g)
 	})
 
 	api.ServerShutdown = func() {

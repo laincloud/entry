@@ -52,7 +52,7 @@ type ListSessionsParams struct {
 	  In: header
 	*/
 	Cookie string
-	/*
+	/*MySQL LIKE pattern match
 	  In: query
 	*/
 	AppName *string
@@ -71,7 +71,7 @@ type ListSessionsParams struct {
 	  Default: 0
 	*/
 	Since *int64
-	/*
+	/*MySQL LIKE pattern match
 	  In: query
 	*/
 	User *string
