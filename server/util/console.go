@@ -49,5 +49,5 @@ func validateConsoleRole(authURL, token string, g *global.Global) (*sso.User, er
 	if caResp.Role.Role == "" {
 		return nil, ErrAuthFailed
 	}
-	return g.SSOClient.GetUser(token)
+	return g.SSOClient.GetMe(token)
 }

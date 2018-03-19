@@ -19,10 +19,10 @@ var (
 func init() {
 	SwaggerJSON = json.RawMessage([]byte(`{
   "consumes": [
-    "application/vnd.laincloud.entry.v1+json"
+    "application/vnd.laincloud.entry.v3+json"
   ],
   "produces": [
-    "application/vnd.laincloud.entry.v1+json"
+    "application/vnd.laincloud.entry.v3+json"
   ],
   "schemes": [
     "http"
@@ -187,37 +187,6 @@ func init() {
                 "type": "string",
                 "description": "delete access_token in cookie"
               }
-            }
-          },
-          "default": {
-            "description": "generic error response",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
-    "/api/me": {
-      "get": {
-        "tags": [
-          "auth"
-        ],
-        "operationId": "getMe",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "Cookie with access_token",
-            "name": "Cookie",
-            "in": "header",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "the user corresponding to the access_token",
-            "schema": {
-              "$ref": "#/definitions/user"
             }
           },
           "default": {
@@ -493,26 +462,15 @@ func init() {
           "type": "string"
         }
       }
-    },
-    "user": {
-      "type": "object",
-      "required": [
-        "email"
-      ],
-      "properties": {
-        "email": {
-          "type": "string"
-        }
-      }
     }
   }
 }`))
 	FlatSwaggerJSON = json.RawMessage([]byte(`{
   "consumes": [
-    "application/vnd.laincloud.entry.v1+json"
+    "application/vnd.laincloud.entry.v3+json"
   ],
   "produces": [
-    "application/vnd.laincloud.entry.v1+json"
+    "application/vnd.laincloud.entry.v3+json"
   ],
   "schemes": [
     "http"
@@ -677,37 +635,6 @@ func init() {
                 "type": "string",
                 "description": "delete access_token in cookie"
               }
-            }
-          },
-          "default": {
-            "description": "generic error response",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
-    "/api/me": {
-      "get": {
-        "tags": [
-          "auth"
-        ],
-        "operationId": "getMe",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "Cookie with access_token",
-            "name": "Cookie",
-            "in": "header",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "the user corresponding to the access_token",
-            "schema": {
-              "$ref": "#/definitions/user"
             }
           },
           "default": {
@@ -984,17 +911,6 @@ func init() {
           "type": "string"
         },
         "user": {
-          "type": "string"
-        }
-      }
-    },
-    "user": {
-      "type": "object",
-      "required": [
-        "email"
-      ],
-      "properties": {
-        "email": {
           "type": "string"
         }
       }

@@ -106,9 +106,6 @@ func configureAPI(api *operations.EntryAPI) http.Handler {
 	api.AuthLogoutHandler = auth.LogoutHandlerFunc(func(params auth.LogoutParams) middleware.Responder {
 		return handler.Logout(params, g)
 	})
-	api.AuthGetMeHandler = auth.GetMeHandlerFunc(func(params auth.GetMeParams) middleware.Responder {
-		return handler.GetMe(params, g)
-	})
 	api.ConfigGetConfigHandler = swaggerconfig.GetConfigHandlerFunc(func(params swaggerconfig.GetConfigParams) middleware.Responder {
 		return handler.GetConfig(params, g)
 	})

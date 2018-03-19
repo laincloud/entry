@@ -3,7 +3,6 @@ package handler
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -17,7 +16,6 @@ import (
 	"github.com/mijia/sweb/log"
 
 	"github.com/laincloud/entry/message"
-	swaggermodels "github.com/laincloud/entry/server/gen/models"
 	"github.com/laincloud/entry/server/global"
 	"github.com/laincloud/entry/server/models"
 	"github.com/laincloud/entry/server/util"
@@ -27,8 +25,9 @@ const (
 	aliveDecectionInterval = 10 * time.Second
 	readBufferSize         = 1024
 	writeBufferSize        = 10240 //The write buffer size should be large
+	asciiHT                = 9
 	asciiCR                = 13
-	keyAccessToken         = "access_token"
+	complementTimeout      = 10 * time.Millisecond
 )
 
 var (
@@ -37,55 +36,19 @@ var (
 		WriteBufferSize: writeBufferSize,
 		CheckOrigin:     func(r *http.Request) bool { return true },
 	}
-	noAuthAPIPaths = []string{
-		"/enter",
-		"/attach",
-		"/api/authorize",
-		"/api/config",
-		"/api/logout",
-		"/api/ping",
-	}
 )
 
-type websocketHandlerFunc func(ctx context.Context, conn *websocket.Conn, r *http.Request, g *global.Global)
-
-// AuthAPI judge whether the request has right to our API
-func AuthAPI(h http.Handler, g *global.Global) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Infof("Receive a request: %+v.", r)
-		defer func() {
-			log.Infof("Request: %+v has been handled.", r)
-		}()
-
-		for _, p := range noAuthAPIPaths {
-			if r.URL.Path == p {
-				h.ServeHTTP(w, r)
-				return
-			}
-		}
-
-		accessToken, err := r.Cookie(keyAccessToken)
-		if err != nil {
-			errMsg := err.Error()
-			w.WriteHeader(http.StatusUnauthorized)
-			json.NewEncoder(w).Encode(swaggermodels.Error{
-				Message: &errMsg,
-			})
-			return
-		}
-
-		if _, err = util.AuthAPI(accessToken.Value, g); err != nil {
-			errMsg := err.Error()
-			w.WriteHeader(http.StatusUnauthorized)
-			json.NewEncoder(w).Encode(swaggermodels.Error{
-				Message: &errMsg,
-			})
-			return
-		}
-
-		h.ServeHTTP(w, r)
-	})
+type sessionReplay struct {
+	typescriptFile *os.File
+	timingFile     *os.File
 }
+
+type pipe struct {
+	requestBuffer  chan []byte
+	responseBuffer chan []byte
+}
+
+type websocketHandlerFunc func(ctx context.Context, conn *websocket.Conn, r *http.Request, g *global.Global)
 
 // HandleWebsocket handle websocket request
 func HandleWebsocket(ctx context.Context, f websocketHandlerFunc, r *http.Request, g *global.Global) middleware.Responder {
@@ -101,9 +64,8 @@ func HandleWebsocket(ctx context.Context, f websocketHandlerFunc, r *http.Reques
 	})
 }
 
-func handleRequest(conn *websocket.Conn, s *models.Session, sessionWriter io.WriteCloser, wg *sync.WaitGroup, execID string, msgUnmarshaller util.Unmarshaler, g *global.Global) {
+func handleRequest(conn *websocket.Conn, s *models.Session, sessionWriter io.WriteCloser, wg *sync.WaitGroup, execID string, msgUnmarshaller util.Unmarshaler, g *global.Global, pipe *pipe) {
 	var (
-		n     int
 		err   error
 		wsMsg []byte
 		buf   bytes.Buffer
@@ -115,26 +77,46 @@ func handleRequest(conn *websocket.Conn, s *models.Session, sessionWriter io.Wri
 			if unmarshalErr := msgUnmarshaller(wsMsg, &inMsg); unmarshalErr == nil {
 				switch inMsg.MsgType {
 				case message.RequestMessage_PLAIN:
-					if n, err = sessionWriter.Write(inMsg.Content); err != nil {
+					if _, err = sessionWriter.Write(inMsg.Content); err != nil {
 						log.Errorf("sessionWriter.Write() failed, inMsg.Content: %s(%v), error: %s, session: %+v.", inMsg.Content, inMsg.Content, err, s)
-					} else {
-						log.Infof("sessionWriter.Write() succeed, inMsg.Content: %s(%v), n: %d, session: %+v.", inMsg.Content, inMsg.Content, n, s)
+						continue
 					}
 
-					if _, err = buf.Write(inMsg.Content); err != nil {
-						log.Errorf("buf.Write() failed, error: %s, session: %+v.", err, s)
-					}
-
-					if len(inMsg.Content) == 1 && inMsg.Content[0] == asciiCR {
-						command := models.Command{
-							SessionID: s.SessionID,
-							Session:   *s,
-							User:      s.User,
-							Content:   buf.String(),
+					switch {
+					case len(inMsg.Content) == 1 && inMsg.Content[0] == asciiHT:
+						pipe.requestBuffer <- inMsg.Content
+						select {
+						case complement := <-pipe.responseBuffer:
+							buf.Write(complement)
+						case <-time.After(complementTimeout):
+							log.Error("Command complement timeout, will give up.")
+						}
+					case len(inMsg.Content) == 1 && inMsg.Content[0] == asciiCR:
+						commandContent := string(util.TermEscape(buf.Bytes()))
+						if commandContent != "" {
+							command := models.Command{
+								SessionID: s.SessionID,
+								Session:   *s,
+								User:      s.User,
+								Content:   commandContent,
+							}
+							g.DB.Create(&command)
+							if command.IsRisky() {
+								log.Warnf("Dangerous command! Will alert entry owners... Command.Content: %v, session: %+v.", command.Content, s)
+								go func() {
+									if err1 := command.Alert(g); err1 != nil {
+										log.Errorf("command.Alert() failed, error: %v.", err1)
+									}
+								}()
+							} else {
+								log.Infof("command.Content: %v, session: %+v.", command.Content, s)
+							}
 						}
 						buf.Reset()
-						g.DB.Create(&command)
-						log.Infof("command.Content: %s(%v), session: %+v.", command.Content, command.Content, s)
+					default:
+						if _, err = buf.Write(inMsg.Content); err != nil {
+							log.Errorf("buf.Write() failed, error: %s, session: %+v.", err, s)
+						}
 					}
 				case message.RequestMessage_WINCH:
 					if width, height := util.GetWidthAndHeight(inMsg.Content); width >= 0 && height >= 0 {
@@ -155,7 +137,7 @@ func handleRequest(conn *websocket.Conn, s *models.Session, sessionWriter io.Wri
 	wg.Done()
 }
 
-func handleResponse(conn *websocket.Conn, sessionReader io.ReadCloser, wg *sync.WaitGroup, respType message.ResponseMessage_ResponseType, msgMarshaller util.Marshaler, writeLock *sync.Mutex, typescriptFile, timingFile *os.File) {
+func handleResponse(conn *websocket.Conn, sessionReader io.ReadCloser, wg *sync.WaitGroup, respType message.ResponseMessage_ResponseType, msgMarshaller util.Marshaler, writeLock *sync.Mutex, replay *sessionReplay, pipe *pipe) {
 	var (
 		err  error
 		size int
@@ -171,12 +153,21 @@ func handleResponse(conn *websocket.Conn, sessionReader io.ReadCloser, wg *sync.
 				break
 			}
 
-			if typescriptFile != nil && timingFile != nil {
-				typescriptFile.Write(buf[:validLen])
+			if pipe != nil {
+				select {
+				case <-pipe.requestBuffer:
+					// log.Infof(">>> validLen: %v, buf[:validLen]: %v.", validLen, buf[:validLen])
+					pipe.responseBuffer <- util.TermComplement(buf[:validLen])
+				default:
+				}
+			}
+
+			if replay != nil {
+				replay.typescriptFile.Write(buf[:validLen])
 				newTime := time.Now()
 				delay := newTime.Sub(oldTime)
 				oldTime = newTime
-				fmt.Fprintf(timingFile, "%f %d\n", float64(delay)/1e9, validLen)
+				fmt.Fprintf(replay.timingFile, "%f %d\n", float64(delay)/1e9, validLen)
 			}
 
 			outMsg := &message.ResponseMessage{

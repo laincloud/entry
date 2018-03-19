@@ -12,6 +12,7 @@ import (
 type Config struct {
 	MySQL MySQL `json:"mysql"`
 	SSO   SSO   `json:"sso"`
+	SMTP  SMTP  `json:"smtp"`
 }
 
 // NewConfig return an initialized configuration
@@ -64,4 +65,11 @@ type SSO struct {
 	RedirectURI  string `json:"redirect_uri"`
 	EntryGroup   string `json:"entry_group"`
 	Scope        string `json:"scope"`
+}
+
+// SMTP denotes SMTP configuration
+type SMTP struct {
+	Address   string `json:"address"`
+	FromEmail string `json:"from_email"`
+	Password  string `json:"password"`
 }

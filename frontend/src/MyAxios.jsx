@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const myAxios = axios.create({
   headers: {
-    'Accept': 'application/vnd.laincloud.entry.v1+json'
+    'Accept': 'application/vnd.laincloud.entry.v3+json'
   }
 });
 

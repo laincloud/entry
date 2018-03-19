@@ -56,9 +56,6 @@ func NewEntryAPI(spec *loads.Document) *EntryAPI {
 		ConfigGetConfigHandler: config.GetConfigHandlerFunc(func(params config.GetConfigParams) middleware.Responder {
 			return middleware.NotImplemented("operation ConfigGetConfig has not yet been implemented")
 		}),
-		AuthGetMeHandler: auth.GetMeHandlerFunc(func(params auth.GetMeParams) middleware.Responder {
-			return middleware.NotImplemented("operation AuthGetMe has not yet been implemented")
-		}),
 		CommandsListCommandsHandler: commands.ListCommandsHandlerFunc(func(params commands.ListCommandsParams) middleware.Responder {
 			return middleware.NotImplemented("operation CommandsListCommands has not yet been implemented")
 		}),
@@ -99,10 +96,10 @@ type EntryAPI struct {
 	// It has a default implemention in the security package, however you can replace it for your particular usage.
 	BearerAuthenticator func(string, security.ScopedTokenAuthentication) runtime.Authenticator
 
-	// JSONConsumer registers a consumer for a "application/vnd.laincloud.entry.v1+json" mime type
+	// JSONConsumer registers a consumer for a "application/vnd.laincloud.entry.v3+json" mime type
 	JSONConsumer runtime.Consumer
 
-	// JSONProducer registers a producer for a "application/vnd.laincloud.entry.v1+json" mime type
+	// JSONProducer registers a producer for a "application/vnd.laincloud.entry.v3+json" mime type
 	JSONProducer runtime.Producer
 
 	// ContainerAttachContainerHandler sets the operation handler for the attach container operation
@@ -113,8 +110,6 @@ type EntryAPI struct {
 	ContainerEnterContainerHandler container.EnterContainerHandler
 	// ConfigGetConfigHandler sets the operation handler for the get config operation
 	ConfigGetConfigHandler config.GetConfigHandler
-	// AuthGetMeHandler sets the operation handler for the get me operation
-	AuthGetMeHandler auth.GetMeHandler
 	// CommandsListCommandsHandler sets the operation handler for the list commands operation
 	CommandsListCommandsHandler commands.ListCommandsHandler
 	// SessionsListSessionsHandler sets the operation handler for the list sessions operation
@@ -204,10 +199,6 @@ func (o *EntryAPI) Validate() error {
 		unregistered = append(unregistered, "config.GetConfigHandler")
 	}
 
-	if o.AuthGetMeHandler == nil {
-		unregistered = append(unregistered, "auth.GetMeHandler")
-	}
-
 	if o.CommandsListCommandsHandler == nil {
 		unregistered = append(unregistered, "commands.ListCommandsHandler")
 	}
@@ -261,8 +252,8 @@ func (o *EntryAPI) ConsumersFor(mediaTypes []string) map[string]runtime.Consumer
 	for _, mt := range mediaTypes {
 		switch mt {
 
-		case "application/vnd.laincloud.entry.v1+json":
-			result["application/vnd.laincloud.entry.v1+json"] = o.JSONConsumer
+		case "application/vnd.laincloud.entry.v3+json":
+			result["application/vnd.laincloud.entry.v3+json"] = o.JSONConsumer
 
 		}
 
@@ -281,8 +272,8 @@ func (o *EntryAPI) ProducersFor(mediaTypes []string) map[string]runtime.Producer
 	for _, mt := range mediaTypes {
 		switch mt {
 
-		case "application/vnd.laincloud.entry.v1+json":
-			result["application/vnd.laincloud.entry.v1+json"] = o.JSONProducer
+		case "application/vnd.laincloud.entry.v3+json":
+			result["application/vnd.laincloud.entry.v3+json"] = o.JSONProducer
 
 		}
 
@@ -345,11 +336,6 @@ func (o *EntryAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/api/config"] = config.NewGetConfig(o.context, o.ConfigGetConfigHandler)
-
-	if o.handlers["GET"] == nil {
-		o.handlers["GET"] = make(map[string]http.Handler)
-	}
-	o.handlers["GET"]["/api/me"] = auth.NewGetMe(o.context, o.AuthGetMeHandler)
 
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)

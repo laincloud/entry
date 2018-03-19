@@ -10,10 +10,10 @@ Package restapi Entry
     Version: 3.0.0
 
     Consumes:
-    - application/vnd.laincloud.entry.v1+json
+    - application/vnd.laincloud.entry.v3+json
 
     Produces:
-    - application/vnd.laincloud.entry.v1+json
+    - application/vnd.laincloud.entry.v3+json
 
 swagger:meta
 */

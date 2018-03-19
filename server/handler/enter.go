@@ -62,6 +62,15 @@ func Enter(ctx context.Context, conn *websocket.Conn, r *http.Request, g *global
 	}
 	defer timingFile.Close()
 
+	replay := &sessionReplay{
+		typescriptFile: typescriptFile,
+		timingFile:     timingFile,
+	}
+	pipe := &pipe{
+		requestBuffer:  make(chan []byte),
+		responseBuffer: make(chan []byte),
+	}
+
 	termType := r.Header.Get("term-type")
 	if len(termType) == 0 {
 		termType = "xterm-256color"
@@ -95,9 +104,9 @@ func Enter(ctx context.Context, conn *websocket.Conn, r *http.Request, g *global
 	wg := &sync.WaitGroup{}
 	wg.Add(3)
 	go handleAliveDetection(conn, stopSignal, msgMarshaller, writeLock)
-	go handleRequest(conn, s, stdinPipeWriter, wg, exec.ID, msgUnmarshaller, g)
-	go handleResponse(conn, stdoutPipeReader, wg, message.ResponseMessage_STDOUT, msgMarshaller, writeLock, typescriptFile, timingFile)
-	go handleResponse(conn, stderrPipeReader, wg, message.ResponseMessage_STDERR, msgMarshaller, writeLock, typescriptFile, timingFile)
+	go handleRequest(conn, s, stdinPipeWriter, wg, exec.ID, msgUnmarshaller, g, pipe)
+	go handleResponse(conn, stdoutPipeReader, wg, message.ResponseMessage_STDOUT, msgMarshaller, writeLock, replay, pipe)
+	go handleResponse(conn, stderrPipeReader, wg, message.ResponseMessage_STDERR, msgMarshaller, writeLock, replay, pipe)
 	go func() {
 		if err = g.DockerClient.StartExec(exec.ID, docker.StartExecOptions{
 			Detach:       false,
