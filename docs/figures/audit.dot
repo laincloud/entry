@@ -6,11 +6,13 @@ digraph G {
   lainNode [label="LAIN Node"];
   allContainers [label="All containers"];
   appOwner [label="App Owner"]
+  entry [label="Entry"]
   ordinaryContainers [label="Containers other than entry"]
 
-  lainAdmin -> bastion;
+  lainAdmin -> bastion [label="authorize"];
   bastion -> lainNode [label="audit"];
   lainNode -> allContainers [label="docker exec"];
 
-  appOwner -> ordinaryContainers [label="Authentication, authorize, proxy and audit by entry"];
+  appOwner -> entry [label="authorize"];
+  entry -> ordinaryContainers [label="audit"];
 }
