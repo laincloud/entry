@@ -96,7 +96,6 @@ func handleRequest(conn *websocket.Conn, s *models.Session, sessionWriter io.Wri
 						if commandContent != "" {
 							command := models.Command{
 								SessionID: s.SessionID,
-								Session:   *s,
 								User:      s.User,
 								Content:   commandContent,
 							}
@@ -104,7 +103,7 @@ func handleRequest(conn *websocket.Conn, s *models.Session, sessionWriter io.Wri
 							if command.IsRisky() {
 								log.Warnf("Dangerous command! Will alert entry owners... Command.Content: %v, session: %+v.", command.Content, s)
 								go func() {
-									if err1 := command.Alert(g); err1 != nil {
+									if err1 := command.Alert(*s, g); err1 != nil {
 										log.Errorf("command.Alert() failed, error: %v.", err1)
 									}
 								}()

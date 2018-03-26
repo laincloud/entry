@@ -52,7 +52,7 @@ func AuthContainer(token, appName string, g *global.Global) (*sso.User, error) {
 
 // AuthAPI authorizes whether the client with this token has right to access the API
 func AuthAPI(accessToken string, g *global.Global) (*sso.User, error) {
-	user, err := g.SSOClient.GetUser(accessToken)
+	user, err := g.SSOClient.GetMe(accessToken)
 	if err != nil {
 		return nil, err
 	}

@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	mailTemplate = `Subject: [Entry@{{.LAINDomain}}][{{.Command.Session.AppName}}] - Dangerous Command
+	mailTemplate = `Subject: [Entry@{{.LAINDomain}}][{{.Session.AppName}}] - Dangerous Command
 MIME-version: 1.0;
 Content-Type: text/html; charset="UTF-8";
 
@@ -64,32 +64,32 @@ Content-Type: text/html; charset="UTF-8";
             <caption>Additional Infomation</caption>
             <tr>
                 <td>App Name</td>
-                <td>{{.Command.Session.AppName}}</td>
+                <td>{{.Session.AppName}}</td>
             </tr>
 
             <tr>
                 <td>User</td>
-                <td>{{.Command.Session.User}}</td>
+                <td>{{.Session.User}}</td>
             </tr>
 
             <tr>
                 <td>Source IP</td>
-                <td>{{.Command.Session.SourceIP}}</td>
+                <td>{{.Session.SourceIP}}</td>
             </tr>
 
             <tr>
                 <td>Proc Name</td>
-                <td>{{.Command.Session.ProcName}}</td>
+                <td>{{.Session.ProcName}}</td>
             </tr>
 
             <tr>
                 <td>Instance No</td>
-                <td>{{.Command.Session.InstanceNo}}</td>
+                <td>{{.Session.InstanceNo}}</td>
             </tr>
 
             <tr>
                 <td>Node IP</td>
-                <td>{{.Command.Session.NodeIP}}</td>
+                <td>{{.Session.NodeIP}}</td>
             </tr>
 
             <tr>
@@ -171,12 +171,13 @@ func isRisky(commandContent string) bool {
 // MailData will be inserted into mailTemplate
 type MailData struct {
 	Command    Command
+	Session    Session
 	LAINDomain string
 }
 
 // Alert alert dangerous command
-func (c Command) Alert(g *global.Global) error {
-	msg, err := c.newMailMessage(g.LAINDomain)
+func (c Command) Alert(s Session, g *global.Global) error {
+	msg, err := c.newMailMessage(g.LAINDomain, s)
 	if err != nil {
 		return err
 	}
@@ -184,7 +185,7 @@ func (c Command) Alert(g *global.Global) error {
 	return util.SendMail(msg, g)
 }
 
-func (c Command) newMailMessage(lainDomain string) ([]byte, error) {
+func (c Command) newMailMessage(lainDomain string, s Session) ([]byte, error) {
 	t, err := template.New("mail").Parse(mailTemplate)
 	if err != nil {
 		return nil, err
@@ -193,6 +194,7 @@ func (c Command) newMailMessage(lainDomain string) ([]byte, error) {
 	var buf bytes.Buffer
 	data := MailData{
 		Command:    c,
+		Session:    s,
 		LAINDomain: lainDomain,
 	}
 	if err = t.Execute(&buf, data); err != nil {
