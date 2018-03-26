@@ -35,6 +35,9 @@
 
 ![数据表](docs/figures/database.png)
 
+> - 请根据 [server/sql/bootstrap.sql](server/sql/bootstrap.sql) 创建表
+> - 请根据 [server/sql/create_db_and_user.sql](server/sql/create_db_and_user.sql) 创建数据库和用户
+
 ## 部署
 
 ### 配置
@@ -64,3 +67,4 @@ lain secret add ${LAIN-Domain} web /lain/app/prod.json -f example.json
 ## Licensing
 
 Entry is released under [MIT](https://github.com/laincloud/entry/blob/master/LICENSE) license.
+
