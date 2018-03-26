@@ -1,0 +1,318 @@
+swagger: "2.0"
+
+info:
+  title: Entry
+  version: 3.0.0
+
+schemes:
+  - http
+
+consumes:
+  - application/vnd.laincloud.entry.v3+json
+
+produces:
+  - application/vnd.laincloud.entry.v3+json
+
+paths:
+  /attach:
+    # websocket api
+    get:
+      tags:
+        - container
+      operationId: attachContainer
+      responses:
+        200:
+          description: attach to container's stdout/stderr
+
+  /enter:
+    # websocket api
+    get:
+      tags:
+        - container
+      operationId: enterContainer
+      responses:
+        200:
+          description: enter to the container
+
+  /api/ping:
+    get:
+      tags:
+        - ping
+      operationId: ping
+      responses:
+        200:
+          description: this server is healthy
+          schema:
+            type: string
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/error"
+
+  /api/authorize:
+    get:
+      tags:
+        - auth
+      operationId: authorize
+      parameters:
+        - name: code
+          description: "Authorization code"
+          in: query
+          type: string
+          required: true
+      responses:
+        307:
+          description: redirect to homepage of frontend
+          headers:
+            Location:
+              description: homepage of frontend
+              type: string
+            Set-Cookie:
+              description: set access_token in cookie
+              type: string
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/error"
+
+  /api/logout:
+    get:
+      tags:
+        - auth
+      operationId: logout
+      responses:
+        200:
+          description: logout
+          headers:
+            Set-Cookie:
+              description: delete access_token in cookie
+              type: string
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/error"
+
+  /api/config:
+    get:
+      tags:
+        - config
+      operationId: getConfig
+      responses:
+        200:
+          description: the configuration of entry
+          schema:
+            $ref: "#/definitions/config"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/error"
+
+  /api/commands:
+    get:
+      tags:
+        - commands
+      operationId: listCommands
+      parameters:
+        - name: Cookie
+          description: Cookie with access_token
+          in: header
+          required: true
+          type: string
+        - name: since
+          description: "Unix timestamp(unit: second)"
+          in: query
+          type: integer
+          format: int64
+          default: 0
+        - name: limit
+          in: query
+          type: integer
+          format: int64
+          default: 20
+        - name: offset
+          in: query
+          type: integer
+          format: int64
+          default: 0
+        - name: user
+          description: "MySQL LIKE pattern match"
+          in: query
+          type: string
+        - name: app_name
+          description: "MySQL LIKE pattern match"
+          in: query
+          type: string
+        - name: content
+          description: query pattern(MySQL LIKE pattern match)
+          in: query
+          type: string
+        - name: session_id
+          in: query
+          type: integer
+          format: int64
+      responses:
+        200:
+          description: list the commands
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/command"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/error"
+
+  /api/sessions:
+    get:
+      tags:
+        - sessions
+      operationId: listSessions
+      parameters:
+        - name: Cookie
+          description: Cookie with access_token
+          in: header
+          required: true
+          type: string
+        - name: since
+          description: "Unix timestamp(unit: second)"
+          in: query
+          type: integer
+          format: int64
+          default: 0
+        - name: limit
+          in: query
+          type: integer
+          format: int64
+          default: 20
+        - name: offset
+          in: query
+          type: integer
+          format: int64
+          default: 0
+        - name: user
+          description: "MySQL LIKE pattern match"
+          in: query
+          type: string
+        - name: app_name
+          description: "MySQL LIKE pattern match"
+          in: query
+          type: string
+      responses:
+        200:
+          description: list the sessions
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/session"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/error"
+
+  /api/sessions/{session_id}/replay:
+    # websocket api
+    parameters:
+      - type: integer
+        format: int64
+        name: session_id
+        in: path
+        required: true
+    get:
+      tags:
+        - sessions
+      operationId: replaySession
+      responses:
+        200:
+          description: replay the session
+
+definitions:
+  command:
+    type: object
+    properties:
+      command_id:
+        type: integer
+        format: int64
+        readOnly: true
+      user:
+        type: string
+      app_name:
+        type: string
+      proc_name:
+        type: string
+      instance_no:
+        type: string
+      content:
+        type: string
+      session_id:
+        type: integer
+        format: int64
+        readOnly: true
+      created_at:
+        type: integer
+        format: int64
+        description: "Unix timestamp(unit: second)"
+
+  config:
+    type: object
+    required:
+      - sso
+    properties:
+      sso:
+        type: object
+        required:
+          - domain
+          - client_id
+          - redirect_uri
+          - scope
+        properties:
+          domain:
+            type: string
+          client_id:
+            type: string
+          redirect_uri:
+            type: string
+          scope:
+            type: string
+
+  error:
+    type: object
+    required:
+      - message
+    properties:
+      code:
+        type: integer
+        format: int64
+      message:
+        type: string
+
+  session:
+    type: object
+    properties:
+      session_id:
+        type: integer
+        format: int64
+        readOnly: true
+      user:
+        type: string
+      source_ip:
+        type: string
+      app_name:
+        type: string
+      proc_name:
+        type: string
+      instance_no:
+        type: string
+      container_id:
+        type: string
+      node_ip:
+        type: string
+      status:
+        type: string
+      created_at:
+        type: integer
+        format: int64
+        description: "Unix timestamp(unit: second)"
+      ended_at:
+        type: integer
+        format: int64
+        description: "Unix timestamp(unit: second)"

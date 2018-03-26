@@ -1,0 +1,25 @@
+digraph G {
+  rankdir=LR;
+
+  frontend [label="lain-cli/console"];
+  entryServer [label="Entry Server"];
+  container [label="Container"];
+  mysql [label="MySQL"];
+  listAndQuery [label="List and Query"];
+  sessionFile [label="Session File"];
+  replay [label="Replay"];
+
+  // {rank=same; frontend; mysql}
+
+  frontend -> entryServer [label="stdin"];
+  entryServer -> container [label="stdin"];
+
+  container -> entryServer [label="stdout/stderr"];
+  entryServer -> frontend [label="stdout/stderr"];
+
+  entryServer -> mysql [label="stdin"];
+  mysql -> listAndQuery;
+
+  entryServer -> sessionFile [label="stdin/stdout/stderr"];
+  sessionFile -> replay;
+}
