@@ -13,5 +13,10 @@
         "host": "127.0.0.1",
         "port": 3306,
         "db_name": "entry"
+    },
+    "smtp": {
+        "address": "fake:25",
+        "from_email": "fake@fake.com",
+        "password": ""
     }
 }
