@@ -21,7 +21,7 @@ CREATE TABLE `commands` (
 `command_id` bigint(20) NOT NULL AUTO_INCREMENT,
 `session_id` bigint(20) DEFAULT NULL,
 `user` varchar(255) DEFAULT NULL,
-`content` varchar(255) DEFAULT NULL,
+`content` varchar(1024) DEFAULT NULL,
 `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
 PRIMARY KEY (`command_id`),
 KEY `idx_commands_user` (`user`(191)),

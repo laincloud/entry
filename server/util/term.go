@@ -236,8 +236,8 @@ func TermComplement(src []byte) []byte {
 		return []byte{}
 	}
 
-	for _, b := range src {
-		if b == ' ' {
+	for i, b := range src {
+		if b == ' ' && (i != len(src)-1) {
 			return []byte{}
 		}
 	}
