@@ -115,6 +115,8 @@ func handleRequest(conn *websocket.Conn, s *models.Session, sessionWriter io.Wri
 					default:
 						if _, err = buf.Write(inMsg.Content); err != nil {
 							log.Errorf("buf.Write() failed, error: %s, session: %+v.", err, s)
+						} else {
+							log.Infof("buf.Write() succeed, inMsg.Content: %s(%v), session: %+v.", inMsg.Content, inMsg.Content, s)
 						}
 					}
 				case message.RequestMessage_WINCH:
@@ -155,7 +157,7 @@ func handleResponse(conn *websocket.Conn, sessionReader io.ReadCloser, wg *sync.
 			if pipe != nil {
 				select {
 				case <-pipe.requestBuffer:
-					// log.Infof(">>> validLen: %v, buf[:validLen]: %v.", validLen, buf[:validLen])
+					log.Infof("buf[:validLen]: %s(%v).", buf[:validLen], buf[:validLen])
 					pipe.responseBuffer <- util.TermComplement(buf[:validLen])
 				default:
 				}

@@ -67,4 +67,3 @@ lain secret add ${LAIN-Domain} web /lain/app/prod.json -f example.json
 ## Licensing
 
 Entry is released under [MIT](https://github.com/laincloud/entry/blob/master/LICENSE) license.
-
