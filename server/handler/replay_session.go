@@ -60,10 +60,11 @@ func ReplaySession(ctx context.Context, conn *websocket.Conn, r *http.Request, g
 
 	msgMarshaller := json.Marshal
 	writeLock := &sync.Mutex{}
+	stopSignal := make(chan int)
+	go handleAliveDetection(conn, stopSignal, msgMarshaller, writeLock)
 	go handleResponse(conn, stdoutPipe, wg, message.ResponseMessage_STDOUT, msgMarshaller, writeLock, nil, nil)
 	go handleResponse(conn, stderrPipe, wg, message.ResponseMessage_STDERR, msgMarshaller, writeLock, nil, nil)
 
-	stopSignal := make(chan int)
 	go func() {
 		if err1 := cmd.Run(); err1 != nil {
 			errMsg := fmt.Sprintf(util.ErrMsgTemplate, "Replay session failed, please try again.")

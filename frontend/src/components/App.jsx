@@ -15,12 +15,12 @@ import {
 } from 'material-ui-pickers';
 import DateFnsUtils from 'material-ui-pickers/utils/date-fns-utils';
 
-import Commands from './Commands';
-import Sessions from './Sessions';
-import SessionReplay from './SessionReplay.jsx';
+import Commands from '../containers/Commands';
+import Sessions from '../containers/Sessions';
+import SessionReplay from '../containers/SessionReplay';
 import {
   get
-} from '../MyAxios.jsx';
+} from '../reducers/myAxios'
 
 function TabContainer(props) {
   return (
@@ -62,15 +62,11 @@ const styles = theme => ({
 class App extends React.Component {
   state = {
     user: window.localStorage.getItem('user'),
-    commandsSessionID: '',
-    commandsSince: new Date(),
-    replaySessionID: 0,
-    tabIndex: 0
   };
 
   componentDidMount = () => {
     let params = new URLSearchParams(window.location.search.substring(1));
-    let user = params.get("user");
+    let user = params.get('user');
     if (user) {
       this.setState({
         user: user
@@ -106,49 +102,18 @@ class App extends React.Component {
     get('/api/logout', this.logout);
   };
 
-  handleReplay = (sessionID) => {
-    this.setState({
-      tabIndex: 2,
-      replaySessionID: sessionID
-    })
-  }
-
-  handleSessionSearchCommands = (sessionID, since) => {
-    this.setState({
-      tabIndex: 1,
-      commandsSessionID: sessionID,
-      commandsSince: since
-    });
-  };
-
-  handleCommandsSessionIDChange = event => {
-    this.setState({
-      commandsSessionID: event.target.value
-    })
-  }
-
-  handleCommandsSinceChange = since => {
-    this.setState({
-      commandsSince: since
-    })
-  }
-
-  handleTabIndexChange = (event, tabIndex) => {
-    this.setState({
-      tabIndex: tabIndex,
-    });
-  };
-
   render() {
     const {
-      classes
+      classes,
+      commandsCount,
+      commandsRowsPerPage,
+      sessionsCount,
+      sessionsRowsPerPage,
+      tabIndex,
+      onChangeTabIndex,
     } = this.props;
     const {
       user,
-      tabIndex,
-      commandsSessionID,
-      commandsSince,
-      replaySessionID
     } = this.state;
 
     return (
@@ -177,7 +142,7 @@ class App extends React.Component {
               )}
             </Toolbar>
 
-            <Tabs value={tabIndex} onChange={this.handleTabIndexChange}>
+            <Tabs value={tabIndex} onChange={onChangeTabIndex}>
               <Tab label="Sessions" />
               <Tab label="Commands" />
               {tabIndex === 2 && <Tab label="Replay" />}
@@ -187,11 +152,7 @@ class App extends React.Component {
           <div style={{display: (tabIndex === 0) ? 'block' : 'none'}}>
             <TabContainer>
               <div className={classes.main}>
-                <Sessions
-                  onReplay={this.handleReplay}
-                  onSearchCommands={this.handleSessionSearchCommands}
-                >
-                </Sessions>
+                <Sessions count={sessionsCount} rowsPerPage={sessionsRowsPerPage}/>
               </div>
             </TabContainer>
           </div>
@@ -199,13 +160,7 @@ class App extends React.Component {
           <div style={{display: (tabIndex === 1) ? 'block' : 'none'}}>
             <TabContainer>
               <div className={classes.main}>
-                <Commands
-                  sessionID={commandsSessionID}
-                  onSessionIDChange={this.handleCommandsSessionIDChange}
-                  since={commandsSince}
-                  onSinceChange={this.handleCommandsSinceChange}
-                >
-                </Commands>
+                <Commands count={commandsCount} rowsPerPage={commandsRowsPerPage}/>
               </div>
             </TabContainer>
           </div>
@@ -214,10 +169,7 @@ class App extends React.Component {
           <div>
             <TabContainer>
               <div className={classes.main}>
-                <SessionReplay
-                  sessionID={replaySessionID}
-                >
-                </SessionReplay>
+                <SessionReplay />
               </div>
             </TabContainer>
           </div>
@@ -229,7 +181,13 @@ class App extends React.Component {
 };
 
 App.propTypes = {
-  classes: PropTypes.object.isRequired
+  classes: PropTypes.object.isRequired,
+  commandsCount: PropTypes.number.isRequired,
+  commandsRowsPerPage: PropTypes.number.isRequired,
+  sessionsCount: PropTypes.number.isRequired,
+  sessionsRowsPerPage: PropTypes.number.isRequired,
+  tabIndex: PropTypes.number.isRequired,
+  onChangeTabIndex: PropTypes.func.isRequired
 };
 
 export default withStyles(styles)(App);

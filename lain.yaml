@@ -3,7 +3,7 @@ appname: entry
 build:
     base: golang:1.10
     prepare:
-        version: 20180309
+        version: 20180310
         script:
             # - sed -i 's|deb.debian.org|mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list
             # - sed -i 's|security.debian.org|mirrors.tuna.tsinghua.edu.cn/debian-security|g' /etc/apt/sources.list
