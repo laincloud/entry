@@ -94,7 +94,11 @@ Content-Type: text/html; charset="UTF-8";
 
             <tr>
                 <td>Session ID</td>
-                <td>{{.Command.SessionID}}</td>
+                <td>
+                    <a href="https://entry.{{.LAINDomain}}/web/?fetch_sessions_parameter_session_id={{.Command.SessionID}}&fetch_sessions_parameter_since={{minus .Session.CreatedAt.Unix 1}}">
+                        {{.Command.SessionID}}
+                    </a>
+                </td>
             </tr>
         </table>
     </div>
@@ -125,7 +129,7 @@ var (
 		"rm\\s+-rf\\s+/",            // 强制删除根目录
 		"halt",                      // 关机
 		"poweroff",                  // 关机
-		"shutdown",                  //关机
+		"shutdown",                  // 关机
 	}
 )
 
@@ -186,7 +190,11 @@ func (c Command) Alert(s Session, g *global.Global) error {
 }
 
 func (c Command) newMailMessage(lainDomain string, s Session) ([]byte, error) {
-	t, err := template.New("mail").Parse(mailTemplate)
+	t, err := template.New("mail").Funcs(template.FuncMap{
+		"minus": func(a, b int64) int64 {
+			return a - b
+		},
+	}).Parse(mailTemplate)
 	if err != nil {
 		return nil, err
 	}

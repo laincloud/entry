@@ -123,17 +123,15 @@ class SessionReplay extends React.Component {
           return
         }
 
-        if (data.msgType !== RESPONSE_PING) {
-          let msg = atob(data.content);
-          if (msg.charAt(msg.length - 1) === '\n') {
-            msg += '\r';
-          }
-          term.write(msg);
+        let msg = atob(data.content);
+        if (msg.charAt(msg.length - 1) === '\n') {
+          msg += '\r';
+        }
+        term.write(msg);
 
-          if (data.msgType === RESPONSE_CLOSE) {
-            ws.close();
-            return
-          }
+        if (data.msgType === RESPONSE_CLOSE) {
+          ws.close();
+          return
         };
       };
       reader.readAsArrayBuffer(message.data);
