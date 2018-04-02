@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/laincloud/entry/server/global"
 	"github.com/laincloud/entry/server/sso"
@@ -22,18 +21,12 @@ var (
 
 // AuthContainer authorizes whether the client with the token has the right to access the application's container
 func AuthContainer(token, appName string, g *global.Global) (*sso.User, error) {
-	var (
-		data []byte
-		err  error
-	)
-	if data, err = g.LAINLETClient.Get("/v2/configwatcher?target=auth/console", 2*time.Second); err != nil {
+	authConfig, err := g.LAINLETClient.ConfigGet("auth/console")
+	if err != nil {
 		return nil, err
 	}
-	authDataMap := make(map[string]string)
-	if err = json.Unmarshal(data, &authDataMap); err != nil {
-		return nil, err
-	}
-	if authStr, exist := authDataMap["auth/console"]; exist {
+
+	if authStr, exist := authConfig.Data["auth/console"]; exist {
 		c := ConsoleAuthConf{}
 		if err = json.Unmarshal([]byte(authStr), &c); err != nil {
 			return nil, err

@@ -11,10 +11,10 @@ import (
 
 	"github.com/fsouza/go-dockerclient"
 	"github.com/gorilla/websocket"
-	"github.com/laincloud/entry/message"
 	"github.com/mijia/sweb/log"
 
 	"github.com/laincloud/entry/server/global"
+	"github.com/laincloud/entry/server/message"
 	"github.com/laincloud/entry/server/models"
 	"github.com/laincloud/entry/server/util"
 )

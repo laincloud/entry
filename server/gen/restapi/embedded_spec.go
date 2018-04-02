@@ -30,7 +30,7 @@ func init() {
   "swagger": "2.0",
   "info": {
     "title": "Entry",
-    "version": "3.1.0"
+    "version": "3.2.0"
   },
   "paths": {
     "/api/authorize": {
@@ -478,7 +478,7 @@ func init() {
   "swagger": "2.0",
   "info": {
     "title": "Entry",
-    "version": "3.1.0"
+    "version": "3.2.0"
   },
   "paths": {
     "/api/authorize": {

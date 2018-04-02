@@ -75,7 +75,11 @@ func configureAPI(api *operations.EntryAPI) http.Handler {
 			break
 		}
 	}
-	g := global.NewGlobal(c, db, dockerClient)
+	g, err := global.New(c, db, dockerClient)
+	if err != nil {
+		log.Fatalf("global.New() failed, error: %v.", err)
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 
 	// configure the api here

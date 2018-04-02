@@ -5,6 +5,7 @@ test.py
 test_client.py
 vendor/
 prod.json
+.lain-cache/
 
 # React
 # See https://help.github.com/ignore-files/ for more about ignoring files.
