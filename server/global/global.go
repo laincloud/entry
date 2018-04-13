@@ -8,7 +8,7 @@ import (
 
 	"github.com/fsouza/go-dockerclient"
 	"github.com/jinzhu/gorm"
-	lainlet "github.com/laincloud/lainlet/client"
+	lainlet "github.com/laincloud/lainlet/grpcclient"
 
 	"github.com/laincloud/entry/server/config"
 	"github.com/laincloud/entry/server/sso"
@@ -25,10 +25,17 @@ type Global struct {
 	SSOClient     *sso.Client
 }
 
-// NewGlobal return an initialized Global struct pointer
-func NewGlobal(c *config.Config, db *gorm.DB, dockerClient *docker.Client) *Global {
+// New return an initialized Global struct pointer
+func New(c *config.Config, db *gorm.DB, dockerClient *docker.Client) (*Global, error) {
 	httpClient := http.Client{
 		Timeout: 10 * time.Second,
+	}
+
+	lainletClient, err := lainlet.New(&lainlet.Config{
+		Addr: net.JoinHostPort("lainlet.lain", os.Getenv("LAINLET_PORT")),
+	})
+	if err != nil {
+		return nil, err
 	}
 
 	return &Global{
@@ -37,7 +44,7 @@ func NewGlobal(c *config.Config, db *gorm.DB, dockerClient *docker.Client) *Glob
 		DockerClient:  dockerClient,
 		HTTPClient:    &httpClient,
 		LAINDomain:    os.Getenv("LAIN_DOMAIN"),
-		LAINLETClient: lainlet.New(net.JoinHostPort("lainlet.lain", os.Getenv("LAINLET_PORT"))),
+		LAINLETClient: lainletClient,
 		SSOClient:     sso.NewClient(c.SSO, &httpClient),
-	}
+	}, nil
 }

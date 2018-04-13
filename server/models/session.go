@@ -92,8 +92,8 @@ func NewSession(conn *websocket.Conn, r *http.Request, g *global.Global) (*Sessi
 		AppName:     appName,
 		ProcName:    procName,
 		InstanceNo:  instanceNo,
-		ContainerID: container.ContainerID,
-		NodeIP:      container.NodeIP,
+		ContainerID: container.Id,
+		NodeIP:      container.NodeIp,
 		Status:      SessionStatusActive,
 	}
 	log.Infof("A new session: %+v has been created.", s)

@@ -4,8 +4,9 @@ import (
 	"sync"
 
 	"github.com/gorilla/websocket"
-	"github.com/laincloud/entry/message"
 	"github.com/mijia/sweb/log"
+
+	"github.com/laincloud/entry/server/message"
 )
 
 func SendCloseMessage(conn *websocket.Conn, content []byte, msgMarshaller Marshaler, writeLock *sync.Mutex) {

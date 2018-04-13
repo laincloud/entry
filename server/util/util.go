@@ -1,13 +1,14 @@
 package util
 
 import (
-	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 	"unicode/utf8"
+
+	"github.com/laincloud/lainlet/message"
 
 	"github.com/laincloud/entry/server/global"
 )
@@ -20,23 +21,7 @@ var (
 	errContainerNotfound = errors.New("get data successfully but not found the container")
 )
 
-type CoreInfo map[string]AppInfo
-
 type ViaMethod int
-
-type Container struct {
-	ContainerID string `json:"ContainerId"`
-	NodeIP      string `json:"NodeIp"`
-}
-
-type AppInfo struct {
-	PodInfos []PodInfo `json:"PodInfos"`
-}
-
-type PodInfo struct {
-	InstanceNo int         `json:"InstanceNo"`
-	Containers []Container `json:"ContainerInfos"`
-}
 
 func getAppProcName(key []string) (string, string) {
 	var procName string
@@ -51,26 +36,20 @@ func getAppProcName(key []string) (string, string) {
 }
 
 // GetContainer get container according to appName, procName and instanceNo
-func GetContainer(appName, procName, instanceNo string, g *global.Global) (*Container, error) {
-	var (
-		data []byte
-		err  error
-	)
-	if data, err = g.LAINLETClient.Get("v2/coreinfowatcher?appname="+appName, 2*time.Second); err != nil {
+func GetContainer(appName, procName, instanceNo string, g *global.Global) (*message.Container, error) {
+	coreInfo, err := g.LAINLETClient.CoreinfoGet(appName)
+	if err != nil {
 		return nil, err
 	}
-	coreInfo := make(CoreInfo)
-	if err := json.Unmarshal(data, &coreInfo); err != nil {
-		return nil, err
-	}
-	for procFullName, procInfo := range coreInfo {
+
+	for procFullName, procInfo := range coreInfo.Data {
 		curAppName, curProcName := getAppProcName(strings.Split(procFullName, "."))
 		if curProcName == procName && curAppName == appName {
 			for _, containerInfo := range procInfo.PodInfos {
-				if strconv.Itoa(containerInfo.InstanceNo) == instanceNo &&
+				if fmt.Sprint(containerInfo.InstanceNo) == instanceNo &&
 					len(containerInfo.Containers) > 0 &&
-					containerInfo.Containers[0].ContainerID != "" {
-					return &containerInfo.Containers[0], nil
+					containerInfo.Containers[0].Id != "" {
+					return containerInfo.Containers[0], nil
 				}
 			}
 		}

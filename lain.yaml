@@ -3,24 +3,28 @@ appname: entry
 build:
     base: golang:1.10
     prepare:
-        version: 20180310
         script:
-            # - sed -i 's|deb.debian.org|mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list
-            # - sed -i 's|security.debian.org|mirrors.tuna.tsinghua.edu.cn/debian-security|g' /etc/apt/sources.list
+            - go get -u github.com/golang/dep/cmd/dep
+            - cp -f /go/bin/dep /usr/local/bin/
+            - sed -i 's|deb.debian.org|mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list
+            - sed -i 's|security.debian.org|mirrors.tuna.tsinghua.edu.cn/debian-security|g' /etc/apt/sources.list
             - curl -sL https://deb.nodesource.com/setup_9.x | bash -
-            - apt-get -y update && apt-get -y install apt-transport-https ca-certificates golang-glide nodejs
+            - apt-get -y update && apt-get -y install apt-transport-https ca-certificates nodejs
             - curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
             - echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list
             - apt-get -y update && apt-get -y install yarn
-            - mkdir -p $GOPATH/src/github.com/laincloud/entry
-            - cp -rf . $GOPATH/src/github.com/laincloud/entry
-            - cd $GOPATH/src/github.com/laincloud/entry && glide install
-            - go install github.com/laincloud/entry/server/gen/cmd/entry-server
-            - cd $GOPATH/src/github.com/laincloud/entry/frontend/ && yarn install
     script:
-        - cp -rf . $GOPATH/src/github.com/laincloud/entry
-        - go install github.com/laincloud/entry/server/gen/cmd/entry-server
-        - cd $GOPATH/src/github.com/laincloud/entry/frontend/ && yarn build
+        - mkdir -p /go/src/github.com/laincloud/entry
+        - cp -rf server /go/src/github.com/laincloud/entry/
+        - cd /go/src/github.com/laincloud/entry/server && dep ensure -v
+        - time go install -v github.com/laincloud/entry/server/gen/cmd/entry-server
+        - cd frontend/ && yarn install
+        - cd frontend/ && yarn build
+    volumes:
+        - /go/src
+        - /go/bin
+        - /go/pkg/dep/sources
+        - /root/.cache/go-build
 
 test:
     script:
@@ -29,11 +33,11 @@ test:
 release:
     dest_base: laincloud/nginx:1.13
     copy:
-        - src: $GOPATH/bin/entry-server
+        - src: /go/bin/entry-server
           dest: /lain/app/entry-server
         - src: nginx.conf
           dest: /etc/nginx/conf.d/default.conf
-        - src: $GOPATH/src/github.com/laincloud/entry/frontend/build
+        - src: frontend/build
           dest: /usr/share/nginx/html
 
 web:  # backend
@@ -42,7 +46,7 @@ web:  # backend
     healthcheck: /api/ping
     memory: 256M
     env:
-        - LAINLET_PORT=9001
+        - LAINLET_PORT=9000
         - SWARM_PORT=2376
     secret_files:
         - /lain/app/prod.json
