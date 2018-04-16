@@ -11,12 +11,12 @@ const fetchSessionsParameter_since = params.get(
 const defaultState = {
   fetchCommandsParameter_appName: '',
   fetchCommandsParameter_content: '',
-  fetchCommandsParameter_sessionID: '',
+  fetchCommandsParameter_sessionID: null,
   fetchCommandsParameter_since: new Date(),
   fetchCommandsParameter_user: '',
   fetchSessionsParameter_appName: '',
   fetchSessionsParameter_sessionID: fetchSessionsParameter_sessionID ?
-    fetchSessionsParameter_sessionID : '',
+    fetchSessionsParameter_sessionID : null,
   fetchSessionsParameter_since: fetchSessionsParameter_since ?
     new Date(fetchSessionsParameter_since * 1000) : new Date(),
   fetchSessionsParameter_user: '',
@@ -72,10 +72,13 @@ const app = (state = defaultState, action) => {
         since: Math.floor(state.fetchSessionsParameter_since / 1000)
       }
       if (state.fetchSessionsParameter_user) {
-        params['user'] = '%' + state.fetchSessionsParameter_user + '%';
+        params['user'] = '%' + state.fetchSessionsParameter_user + '%'
       }
       if (state.fetchSessionsParameter_appName) {
-        params['app_name'] = '%' + state.fetchSessionsParameter_appName + '%';
+        params['app_name'] = '%' + state.fetchSessionsParameter_appName + '%'
+      }
+      if (state.fetchSessionsParameter_sessionID) {
+        params['session_id'] = state.fetchSessionsParameter_sessionID
       }
       get('/api/sessions', action.onFulfilled(action.offset), {
         params: params

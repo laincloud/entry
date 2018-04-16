@@ -62,6 +62,7 @@ const SessionsQuery = ({
       className={classes.textField}
       value={sessionID}
       onChange={event => onChangeTextField('sessionID', event.target.value)}
+      type="number"
       margin="normal"
     />
 

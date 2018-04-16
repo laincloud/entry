@@ -17,6 +17,9 @@ func ListSessions(params sessions.ListSessionsParams, g *global.Global) middlewa
 	var dbSessions []models.Session
 	since := time.Unix(*params.Since, 0)
 	newDB := g.DB.Where("created_at >= ?", since)
+	if params.SessionID != nil {
+		newDB = newDB.Where("session_id = ?", *params.SessionID)
+	}
 	if params.User != nil && *params.User != "" {
 		newDB = newDB.Where("user LIKE ?", *params.User)
 	}

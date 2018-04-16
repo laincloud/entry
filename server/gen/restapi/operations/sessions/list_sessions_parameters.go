@@ -26,7 +26,8 @@ func NewListSessionsParams() ListSessionsParams {
 
 		limitDefault  = int64(20)
 		offsetDefault = int64(0)
-		sinceDefault  = int64(0)
+
+		sinceDefault = int64(0)
 	)
 
 	return ListSessionsParams{
@@ -66,6 +67,10 @@ type ListSessionsParams struct {
 	  Default: 0
 	*/
 	Offset *int64
+	/*
+	  In: query
+	*/
+	SessionID *int64
 	/*Unix timestamp(unit: second)
 	  In: query
 	  Default: 0
@@ -104,6 +109,11 @@ func (o *ListSessionsParams) BindRequest(r *http.Request, route *middleware.Matc
 
 	qOffset, qhkOffset, _ := qs.GetOK("offset")
 	if err := o.bindOffset(qOffset, qhkOffset, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
+	qSessionID, qhkSessionID, _ := qs.GetOK("session_id")
+	if err := o.bindSessionID(qSessionID, qhkSessionID, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -200,6 +210,27 @@ func (o *ListSessionsParams) bindOffset(rawData []string, hasKey bool, formats s
 		return errors.InvalidType("offset", "query", "int64", raw)
 	}
 	o.Offset = &value
+
+	return nil
+}
+
+func (o *ListSessionsParams) bindSessionID(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+
+	value, err := swag.ConvertInt64(raw)
+	if err != nil {
+		return errors.InvalidType("session_id", "query", "int64", raw)
+	}
+	o.SessionID = &value
 
 	return nil
 }
