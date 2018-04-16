@@ -15,11 +15,12 @@ import (
 
 // ListSessionsURL generates an URL for the list sessions operation
 type ListSessionsURL struct {
-	AppName *string
-	Limit   *int64
-	Offset  *int64
-	Since   *int64
-	User    *string
+	AppName   *string
+	Limit     *int64
+	Offset    *int64
+	SessionID *int64
+	Since     *int64
+	User      *string
 
 	_basePath string
 	// avoid unkeyed usage
@@ -74,6 +75,14 @@ func (o *ListSessionsURL) Build() (*url.URL, error) {
 	}
 	if offset != "" {
 		qs.Set("offset", offset)
+	}
+
+	var sessionID string
+	if o.SessionID != nil {
+		sessionID = swag.FormatInt64(*o.SessionID)
+	}
+	if sessionID != "" {
+		qs.Set("session_id", sessionID)
 	}
 
 	var since string

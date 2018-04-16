@@ -30,7 +30,7 @@ func init() {
   "swagger": "2.0",
   "info": {
     "title": "Entry",
-    "version": "3.2.0"
+    "version": "3.2.1"
   },
   "paths": {
     "/api/authorize": {
@@ -233,6 +233,12 @@ func init() {
             "name": "Cookie",
             "in": "header",
             "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "name": "session_id",
+            "in": "query"
           },
           {
             "type": "integer",
@@ -478,7 +484,7 @@ func init() {
   "swagger": "2.0",
   "info": {
     "title": "Entry",
-    "version": "3.2.0"
+    "version": "3.2.1"
   },
   "paths": {
     "/api/authorize": {
@@ -681,6 +687,12 @@ func init() {
             "name": "Cookie",
             "in": "header",
             "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "name": "session_id",
+            "in": "query"
           },
           {
             "type": "integer",
