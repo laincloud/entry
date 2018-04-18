@@ -15,6 +15,7 @@ import (
 	"github.com/laincloud/entry/server/global"
 	"github.com/laincloud/entry/server/message"
 	"github.com/laincloud/entry/server/models"
+	"github.com/laincloud/entry/server/pipe"
 	"github.com/laincloud/entry/server/util"
 )
 
@@ -41,17 +42,18 @@ func Attach(ctx context.Context, conn *websocket.Conn, r *http.Request, g *globa
 		ErrorStream:  stderrPipeWriter,
 	}
 
-	msgMarshaller, _ := util.GetMarshalers(r)
+	msgMarshaler, msgUnMarshaler := util.GetMarshalers(r)
 	writeLock := &sync.Mutex{}
-	go handleResponse(conn, stdoutPipeReader, wg, message.ResponseMessage_STDOUT, msgMarshaller, writeLock, nil, nil)
-	go handleResponse(conn, stderrPipeReader, wg, message.ResponseMessage_STDERR, msgMarshaller, writeLock, nil, nil)
+	p := pipe.NewPipe(conn, msgMarshaler, s, msgUnMarshaler, wg, writeLock)
+	go p.HandleResponse(message.ResponseMessage_STDOUT, stdoutPipeReader, nil)
+	go p.HandleResponse(message.ResponseMessage_STDERR, stderrPipeReader, nil)
 
 	stopSignal := make(chan int)
 	go func() {
 		if waiter, err := g.DockerClient.AttachToContainerNonBlocking(opts); err != nil {
 			errMsg := fmt.Sprintf(util.ErrMsgTemplate, "Can't attach your container, try again.")
 			log.Errorf("Attach failed: %s", err.Error())
-			util.SendCloseMessage(conn, []byte(errMsg), msgMarshaller, writeLock)
+			util.SendCloseMessage(conn, []byte(errMsg), msgMarshaler, writeLock)
 		} else {
 			// Check whether the websocket is closed
 			for {

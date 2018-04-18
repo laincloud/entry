@@ -16,6 +16,7 @@ import (
 	"github.com/laincloud/entry/server/global"
 	"github.com/laincloud/entry/server/message"
 	"github.com/laincloud/entry/server/models"
+	"github.com/laincloud/entry/server/pipe"
 	"github.com/laincloud/entry/server/util"
 )
 
@@ -44,32 +45,12 @@ func Enter(ctx context.Context, conn *websocket.Conn, r *http.Request, g *global
 		return
 	}
 
-	typescriptFile, err := os.Create(s.TypescriptFile())
+	sessionReplay, err := pipe.NewSessionReplay(*s)
 	if err != nil {
-		log.Errorf("os.Create(%s) failed, error: %s.", s.TypescriptFile(), err)
+		log.Errorf("pipe.NewSessionReplay(%v) failed, error: %s.", s, err)
 		return
 	}
-	fmt.Fprintf(typescriptFile, "Script started on %s\n", time.Now())
-	defer func() {
-		fmt.Fprintf(typescriptFile, "Script done on %s\n", time.Now())
-		typescriptFile.Close()
-	}()
-
-	timingFile, err := os.Create(s.TimingFile())
-	if err != nil {
-		log.Errorf("os.Create(%s) failed, error: %s.", s.TimingFile(), err)
-		return
-	}
-	defer timingFile.Close()
-
-	replay := &sessionReplay{
-		typescriptFile: typescriptFile,
-		timingFile:     timingFile,
-	}
-	pipe := &pipe{
-		requestBuffer:  make(chan []byte),
-		responseBuffer: make(chan []byte),
-	}
+	defer sessionReplay.Close()
 
 	termType := r.Header.Get("term-type")
 	if len(termType) == 0 {
@@ -102,11 +83,12 @@ func Enter(ctx context.Context, conn *websocket.Conn, r *http.Request, g *global
 	stderrPipeReader, stderrPipeWriter := io.Pipe()
 	stopSignal := make(chan int)
 	wg := &sync.WaitGroup{}
+	p := pipe.NewPipe(conn, msgMarshaller, s, msgUnmarshaller, wg, writeLock)
 	wg.Add(3)
-	go handleAliveDetection(conn, stopSignal, msgMarshaller, writeLock)
-	go handleRequest(conn, s, stdinPipeWriter, wg, exec.ID, msgUnmarshaller, g, pipe)
-	go handleResponse(conn, stdoutPipeReader, wg, message.ResponseMessage_STDOUT, msgMarshaller, writeLock, replay, pipe)
-	go handleResponse(conn, stderrPipeReader, wg, message.ResponseMessage_STDERR, msgMarshaller, writeLock, replay, pipe)
+	go p.HandleAliveDetection(stopSignal)
+	go p.HandleRequest(exec.ID, stdinPipeWriter, g)
+	go p.HandleResponse(message.ResponseMessage_STDOUT, stdoutPipeReader, sessionReplay)
+	go p.HandleResponse(message.ResponseMessage_STDERR, stderrPipeReader, sessionReplay)
 	go func() {
 		if err = g.DockerClient.StartExec(exec.ID, docker.StartExecOptions{
 			Detach:       false,

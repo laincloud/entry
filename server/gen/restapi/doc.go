@@ -7,7 +7,7 @@ Package restapi Entry
       http
     Host: localhost
     BasePath: /
-    Version: 3.2.1
+    Version: 3.2.2
 
     Consumes:
     - application/vnd.laincloud.entry.v3+json

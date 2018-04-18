@@ -16,6 +16,7 @@ import (
 	"github.com/laincloud/entry/server/global"
 	"github.com/laincloud/entry/server/message"
 	"github.com/laincloud/entry/server/models"
+	"github.com/laincloud/entry/server/pipe"
 	"github.com/laincloud/entry/server/util"
 )
 
@@ -60,10 +61,11 @@ func ReplaySession(ctx context.Context, conn *websocket.Conn, r *http.Request, g
 
 	msgMarshaller := json.Marshal
 	writeLock := &sync.Mutex{}
+	p := pipe.NewPipe(conn, json.Marshal, &s, json.Unmarshal, wg, writeLock)
 	stopSignal := make(chan int)
-	go handleAliveDetection(conn, stopSignal, msgMarshaller, writeLock)
-	go handleResponse(conn, stdoutPipe, wg, message.ResponseMessage_STDOUT, msgMarshaller, writeLock, nil, nil)
-	go handleResponse(conn, stderrPipe, wg, message.ResponseMessage_STDERR, msgMarshaller, writeLock, nil, nil)
+	go p.HandleAliveDetection(stopSignal)
+	go p.HandleResponse(message.ResponseMessage_STDOUT, stdoutPipe, nil)
+	go p.HandleResponse(message.ResponseMessage_STDERR, stderrPipe, nil)
 
 	go func() {
 		if err1 := cmd.Run(); err1 != nil {

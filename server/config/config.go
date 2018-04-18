@@ -8,11 +8,14 @@ import (
 	swaggermodels "github.com/laincloud/entry/server/gen/models"
 )
 
+// WriteBufferSize assign the websocket write buffer size
+const WriteBufferSize = 10240
+
 // Config denotes configuration
 type Config struct {
 	MySQL MySQL `json:"mysql"`
-	SSO   SSO   `json:"sso"`
 	SMTP  SMTP  `json:"smtp"`
+	SSO   SSO   `json:"sso"`
 }
 
 // NewConfig return an initialized configuration
