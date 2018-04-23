@@ -1,11 +1,16 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 
+	"github.com/go-openapi/runtime"
+	"github.com/go-openapi/runtime/middleware"
+	"github.com/gorilla/websocket"
 	"github.com/mijia/sweb/log"
 
+	"github.com/laincloud/entry/server/config"
 	swaggermodels "github.com/laincloud/entry/server/gen/models"
 	"github.com/laincloud/entry/server/global"
 	"github.com/laincloud/entry/server/util"
@@ -13,6 +18,7 @@ import (
 
 const (
 	keyAccessToken = "access_token"
+	readBufferSize = 1024
 )
 
 var (
@@ -23,6 +29,12 @@ var (
 		"/api/config",
 		"/api/logout",
 		"/api/ping",
+	}
+
+	upgrader = websocket.Upgrader{
+		ReadBufferSize:  readBufferSize,
+		WriteBufferSize: config.WriteBufferSize,
+		CheckOrigin:     func(r *http.Request) bool { return true },
 	}
 )
 
@@ -61,5 +73,21 @@ func AuthAPI(h http.Handler, g *global.Global) http.Handler {
 		}
 
 		h.ServeHTTP(w, r)
+	})
+}
+
+type websocketHandlerFunc func(ctx context.Context, conn *websocket.Conn, r *http.Request, g *global.Global)
+
+// HandleWebsocket handle websocket request
+func HandleWebsocket(ctx context.Context, f websocketHandlerFunc, r *http.Request, g *global.Global) middleware.Responder {
+	return middleware.ResponderFunc(func(w http.ResponseWriter, _ runtime.Producer) {
+		conn, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			log.Errorf("Upgrade websocket protocol error: %s", err.Error())
+			return
+		}
+		defer conn.Close()
+
+		f(ctx, conn, r, g)
 	})
 }
