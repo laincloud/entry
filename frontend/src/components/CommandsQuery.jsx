@@ -74,6 +74,9 @@ const CommandsQuery = ({
       value={sessionID}
       onChange={event => onChangeTextField('sessionID', event.target.value)}
       type="number"
+      InputLabelProps={{
+        shrink: true
+      }}
       margin="normal"
     />
 
