@@ -1,0 +1,439 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "io.grpc.examples.message";
+option java_outer_classname = "MessageProto";
+
+package message;
+
+// Appname service
+service Appname {
+    rpc Get (AppnameRequest) returns (AppnameReply) {
+    }
+}
+message AppnameRequest {
+    string ip = 1;
+}
+message AppnameReply {
+    map<string, string> Data = 1;
+}
+
+// Apps service
+service Apps {
+    rpc Get (AppsRequest) returns (AppsReply) {
+    }
+    rpc Watch (AppsRequest) returns (stream AppsReply) {
+    }
+}
+
+message AppInfo {
+    string Appname = 1;
+}
+
+message AppsReply {
+    map<string, AppInfo> Data = 1;
+}
+
+message AppsRequest {
+
+}
+
+// Backupctl service
+service Backupctl {
+    rpc Get (BackupctlRequest) returns (BackupctlReply) {
+    }
+    rpc Watch (BackupctlRequest) returns (stream BackupctlReply) {
+    }
+}
+
+message ContainerForBackupctl {
+    string Id = 1;
+    string Ip = 2;
+    string NodeIp = 3;
+    string NodeName = 4;
+}
+
+message PodInfoForBackupctl {
+    string Annotation = 1;
+    repeated ContainerForBackupctl Containers = 2;
+    int32 InstanceNo = 3;
+}
+
+message BackupctlReply {
+    message PodInfoList {
+        repeated PodInfoForBackupctl pods = 1;
+    }
+    map<string, PodInfoList> Data = 1;
+}
+
+message BackupctlRequest {
+    string Appname = 1;
+}
+
+// The Config service definition.
+service Config {
+    rpc Get (ConfigRequest) returns (ConfigReply) {
+    }
+    rpc Watch (ConfigRequest) returns (stream ConfigReply) {
+    }
+}
+
+message ConfigRequest {
+    string Target = 1;
+}
+
+message ConfigReply {
+    map<string, string> Data = 1;
+}
+
+// Container service
+service Containers {
+    rpc Get (ContainersRequest) returns (ContainersReply) {
+    }
+    rpc Watch (ContainersRequest) returns (stream ContainersReply) {
+    }
+}
+message Info {
+    string AppName = 1;
+    string AppVersion = 2;
+    string ProcName = 3;
+    string NodeName = 4;
+    string NodeIP = 5;
+    string IP = 6;
+    int32 Port = 7;
+    int32 InstanceNo = 8;
+}
+
+message ContainersReply {
+    map<string, Info> Data = 1;
+}
+
+message ContainersRequest {
+    string Nodename = 1;
+}
+
+// Coreinfo service definition
+service Coreinfo {
+    rpc Get (CoreinfoRequest) returns (CoreinfoReply) {
+    }
+    rpc Watch (CoreinfoRequest) returns (stream CoreinfoReply) {
+    }
+}
+
+message Container {
+    repeated string Command = 1;
+    string Id = 2;
+    string Ip = 3;
+    int32 Cpu = 4;
+    repeated string Env = 5;
+    int32 Expose = 6;
+    string Image = 7;
+    int64 Memory = 8;
+    string NodeIp = 9;
+    string NodeName = 10;
+    repeated string Volumes = 11;
+}
+
+message Dependency {
+    string PodName = 1;
+    int32 Policy = 2;
+}
+
+message PodInfo {
+    string Annotation = 1;
+    repeated Container Containers = 2;
+    repeated Dependency Dependencies = 3;
+    int32 InstanceNo = 4;
+}
+
+message CoreInfo {
+    repeated PodInfo PodInfos = 1;
+}
+
+message CoreinfoReply {
+    map<string, CoreInfo> Data = 1;
+}
+
+message CoreinfoRequest {
+    string Appname = 1;
+}
+
+// depends service
+service Depends {
+    rpc Get (DependsRequest) returns (DependsReply) {
+    }
+    rpc Watch (DependsRequest) returns (stream DependsReply) {
+    }
+}
+
+message ContainerInfo {
+    string ContainerID = 1;
+    string NodeIP = 2;
+    string IP = 3;
+    int32 Port = 4;
+}
+
+message DependsItem {
+    string Annotation = 1;
+    repeated ContainerInfo Containers = 2;
+}
+
+message DependsAppMap {
+    map<string, DependsItem> apps = 1;
+}
+
+message DependsNodeMap {
+    map<string, DependsAppMap> nodes = 1;
+}
+
+message DependsReply {
+    map<string, DependsNodeMap> Data = 1;
+}
+
+message DependsRequest {
+    string Target = 1;
+}
+
+// Localspec service(only support Get request)
+service Localspec {
+    rpc Get (LocalspecRequest) returns (LocalspecReply) {
+    }
+}
+
+message LocalspecReply {
+    repeated string Data = 1;
+    string LocalIP = 2;
+    string ip = 3;
+}
+
+message LocalspecRequest {
+    string Nodeip = 1;
+}
+
+// Nodes service
+service Nodes {
+    rpc Get (NodesRequest) returns (NodesReply) {
+    }
+    rpc Watch (NodesRequest) returns (stream NodesReply) {
+    }
+}
+
+message NodeInfo {
+    //Value can be a string or a map of type map[string]string
+    message Value {
+        enum Type {
+            STRING = 0;
+            MAP = 1;
+        }
+        Type Vtype = 1;
+
+        string sval = 2;
+        map<string, string> mval = 3;
+
+    }
+    map<string, Value> v = 1;
+}
+
+message NodesReply {
+    map<string, NodeInfo> Data = 1;
+}
+
+message NodesRequest {
+    string Name = 1;
+}
+
+// Proc Service
+service Podgroup {
+    rpc Get (PodgroupRequest) returns (PodgroupReply) {
+    }
+    rpc Watch (PodgroupRequest) returns (stream PodgroupReply) {
+    }
+}
+
+message Pod {
+    int32 InstanceNo = 1;
+    string IP = 2;
+    int32 Port = 3;
+    string ProcName = 4;
+}
+
+message PodGroup {
+    repeated Pod Pods = 1;
+}
+
+message PodgroupReply {
+    repeated PodGroup Data = 1;
+}
+
+message PodgroupRequest {
+    string Appname = 1;
+}
+
+// Proxy service
+service Proxy {
+    rpc Get (ProxyRequest) returns (ProxyReply) {
+    }
+    rpc Watch (ProxyRequest) returns (stream ProxyReply) {
+    }
+}
+
+message ContainerForProxy {
+    string ContainerIp = 1;
+    int32 ContainerPort = 2;
+}
+
+message ProcInfo {
+    repeated ContainerForProxy Containers = 1;
+}
+
+message ProxyReply {
+    map<string, ProcInfo> Data = 1;
+}
+
+message ProxyRequest {
+    string Appname = 1;
+}
+
+// Rebellion service
+service RebellionLocalprocs {
+    rpc Get (RebellionLocalprocsRequest) returns (RebellionLocalprocsReply) {
+    }
+    rpc Watch (RebellionLocalprocsRequest) returns (stream RebellionLocalprocsReply) {
+    }
+}
+
+message PodInfoForRebellion {
+    string Annotation = 1;
+    string AppVersion = 2;
+    int32 InstanceNo = 3;
+}
+
+message CoreInfoForRebellion {
+    repeated PodInfoForRebellion PodInfos = 1;
+}
+
+message RebellionLocalprocsReply {
+    map<string, CoreInfoForRebellion> Data = 1;
+}
+
+message RebellionLocalprocsRequest {
+    string Appname = 1;
+}
+// StreamrouterPorts service
+service StreamrouterPorts {
+    rpc Get (StreamrouterPortsRequest) returns (StreamrouterPortsReply) {
+    }
+    rpc Watch (StreamrouterPortsRequest) returns (stream StreamrouterPortsReply) {
+    }
+}
+
+message StreamrouterPortsRequest {
+    string Appname = 1;
+}
+
+message StreamrouterPortsReply {
+    repeated int32 Data = 1;
+}
+
+// StreamrouterStreamprocs service
+service StreamrouterStreamprocs {
+    rpc Get (StreamrouterStreamprocsRequest) returns (StreamrouterStreamprocsReply) {
+    }
+    rpc Watch (StreamrouterStreamprocsRequest) returns (stream StreamrouterStreamprocsReply) {
+    }
+}
+
+message StreamUpstream {
+    string Host = 1;
+    int32 InstanceNo = 2;
+}
+
+message StreamService {
+    int32 UpstreamPort = 1;
+    int32 ListenPort = 2;
+    string Send = 3;
+    string Expect = 4;
+}
+
+message StreamProc {
+    string Name = 1;
+    repeated StreamUpstream Upstreams = 2;
+    repeated StreamService Services = 3;
+}
+
+message StreamProcList {
+    repeated StreamProc procs = 1;
+}
+message Port {
+    int32 Srcport = 1;
+    int32 Dstport = 2;
+    string Proto = 3;
+}
+
+message Annotation {
+    repeated Port Ports = 1;
+}
+
+message StreamrouterStreamprocsReply {
+    map<string, StreamProcList> Data = 1;
+}
+
+message StreamrouterStreamprocsRequest {
+    string Appname = 1;
+}
+
+// WebrouterWebprocs service
+service WebrouterWebprocs {
+    rpc Get (WebrouterWebprocsRequest) returns (WebrouterWebprocsReply) {
+    }
+    rpc Watch (WebrouterWebprocsRequest) returns (stream WebrouterWebprocsReply) {
+    }
+}
+message ContainerForWebrouter {
+    string IP = 1;
+    int32 Expose = 2;
+}
+
+message PodInfoForWebrouter {
+    string Annotation = 1;
+    repeated ContainerForWebrouter Containers = 2;
+}
+
+message CoreInfoForWebrouter {
+    repeated PodInfoForWebrouter PodInfos = 1;
+}
+
+message WebrouterWebprocsReply {
+    map<string, CoreInfoForWebrouter> Data = 1;
+}
+
+message WebrouterWebprocsRequest {
+    string Appname = 1;
+}
+
+// Lainlet service
+service Lainlet {
+    rpc Version (EmptyRequest) returns (VersionReply) {
+    }
+    rpc Status (EmptyRequest) returns (StatusReply) {
+    }
+}
+
+message EmptyRequest {
+}
+message VersionReply {
+    string Version = 1;
+    string APIVersion = 2;
+}
+
+message WatcherStatus {
+    int32 NumReceivers = 1;
+    int64 UpdateTime = 2;
+    bytes LastEvent = 3; // json
+    int32 TotalKeys = 4;
+}
+
+message StatusReply {
+    int32 Goroutines = 1;
+    map<string, WatcherStatus> Status = 2;
+}
