@@ -20,11 +20,6 @@ build:
         - time go install -v github.com/laincloud/entry/server/gen/cmd/entry-server
         - cd frontend/ && yarn install
         - cd frontend/ && yarn build
-    volumes:
-        - /go/src
-        - /go/bin
-        - /go/pkg/dep/sources
-        - /root/.cache/go-build
 
 test:
     script:
