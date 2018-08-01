@@ -4,10 +4,10 @@ build:
     base: golang:1.10
     prepare:
         script:
-            - go get -u github.com/golang/dep/cmd/dep
+            - go get -u -v github.com/golang/dep/cmd/dep
             - cp -f /go/bin/dep /usr/local/bin/
-            - sed -i 's|deb.debian.org|mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list
-            - sed -i 's|security.debian.org|mirrors.tuna.tsinghua.edu.cn/debian-security|g' /etc/apt/sources.list
+            - sed -i 's|deb.debian.org|mirrors.ustc.edu.cn|g' /etc/apt/sources.list
+            - sed -i 's|security.debian.org|mirrors.ustc.edu.cn|g' /etc/apt/sources.list
             - curl -sL https://deb.nodesource.com/setup_9.x | bash -
             - apt-get -y update && apt-get -y install apt-transport-https ca-certificates nodejs
             - curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
@@ -16,15 +16,10 @@ build:
     script:
         - mkdir -p /go/src/github.com/laincloud/entry
         - cp -rf server /go/src/github.com/laincloud/entry/
-        - cd /go/src/github.com/laincloud/entry/server && dep ensure -v
-        - time go install -v github.com/laincloud/entry/server/gen/cmd/entry-server
+        - go install -v github.com/laincloud/entry/server/gen/cmd/entry-server
+        - npm config set registry https://registry.npm.taobao.org
         - cd frontend/ && yarn install
         - cd frontend/ && yarn build
-    volumes:
-        - /go/src
-        - /go/bin
-        - /go/pkg/dep/sources
-        - /root/.cache/go-build
 
 test:
     script:
