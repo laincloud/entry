@@ -34,7 +34,7 @@ func Authorize(params auth.AuthorizeParams, g *global.Global) middleware.Respond
 
 	vs := url.Values{}
 	vs.Add("user", user.Email)
-	location := fmt.Sprintf("/web?%s", vs.Encode())
+	location := fmt.Sprintf("/web/?%s", vs.Encode())
 	cookie := http.Cookie{
 		Name:     keyAccessToken,
 		Value:    token.AccessToken,
